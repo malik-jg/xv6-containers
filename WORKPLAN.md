@@ -28,6 +28,8 @@ Malik: Complete Levels 1 and 2, with thorough testing to ensure functionality an
 
 Tommy - Have all system calls implemented with all testing, including edge cases
 
+Dane - Develop data struct and structs, as well as implement a rough version of the shm_get and shm_rem, level 0
+
 
 Rohan will finish level 0 for Synchronization
 
@@ -37,14 +39,14 @@ Week 2:
 
 Malik: Work on and complete Levels 3 and 4, including proper testing for each level.
 Tommy - Implement the O(1) priority queue
-
+Dane - Levels 1 and 2
 Rohan will finish level 1 for Synchronization
 
 Week 3:
 
 Malik: If additional time is needed, finalize Levels 3 and 4 with comprehensive testing. Begin working on extra credit if time permits.
 Rohan will finish level 2 for Syncrhonization
-
+Dane - Complete levels 0 - 3 done
 Group achieves level 1
 Tommy - Implement HFS scheduling
 
@@ -54,6 +56,7 @@ Rohan will finish level 3 for Syncrhonization
 Group achieves level 2, and 3
 
 Tommy - Extensive Testing of HFS scheduling
+Dane - Begin to work on extra credit, edge case testing
 Team: Practice presentations to ensure clarity and flow for project demonstration.
 
 Malik: Begin module integration with other team members. Continue extra credit work if there is time.
