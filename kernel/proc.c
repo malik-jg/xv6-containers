@@ -670,3 +670,9 @@ procdump(void)
 		printf("\n");
 	}
 }
+
+// scheduling sys calls
+int prio_set(int pid, int priority) {
+	// ret 0 on SUCCESS | ret -1 on FAIL
+	return 0;
+}

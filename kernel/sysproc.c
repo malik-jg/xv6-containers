@@ -89,3 +89,9 @@ sys_uptime(void)
 	release(&tickslock);
 	return xticks;
 }
+// scheduling sys call
+ uint64 
+ sys_prio_set(void) 
+ {
+	return 0;
+ }

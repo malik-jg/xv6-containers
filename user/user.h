@@ -41,3 +41,6 @@ void *memcpy(void *, const void *, uint);
 // umalloc.c
 void *malloc(uint);
 void  free(void *);
+
+//scheduling sys calls
+int prio_set(int pid, int priority);
