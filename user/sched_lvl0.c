@@ -6,7 +6,8 @@ int main(void) {
 
     pid = 0;
     priority = 0;
-    prio_set(pid, priority);
+    int res = prio_set(pid, priority);
+    printf("%d \n", res);
     printf("Empty Implementation Works \n");
     return 0;
 }

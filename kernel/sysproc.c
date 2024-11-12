@@ -93,5 +93,10 @@ sys_uptime(void)
  uint64 
  sys_prio_set(void) 
  {
-	return 0;
+	int pid;
+	int priority;
+	argint(0, &pid);
+	argint(0, &priority);
+	return prio_set(pid, priority);
+	
  }

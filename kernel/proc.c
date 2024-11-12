@@ -674,5 +674,45 @@ procdump(void)
 // scheduling sys calls
 int prio_set(int pid, int priority) {
 	// ret 0 on SUCCESS | ret -1 on FAIL
-	return 0;
+	
+	// init new struct and get the current process struct
+	struct proc *p;
+	struct proc *current = myproc();
+    // iterate thru the procs, see if we find the matching pid 
+    for (p = proc; p < &proc[NPROC]; p++) {
+        acquire(&p->lock);  
+        // if we find match, set the priority
+		if (p->pid == pid) {
+            printf("In cond \n");
+			p->priority = priority; 
+            struct proc *prev_proc = p;
+            int is_prev = 0;
+            // go up the chain of procs
+			while (prev_proc) {
+				// if the current proc shares pid, we are good
+                printf("in while \n");
+				if (prev_proc == current) {
+                    printf("going to break \n");
+					is_prev = 1;
+                    break;
+                }
+                prev_proc = prev_proc->parent; //iterate
+            }
+			// update priority if condition is met
+            if (is_prev && priority >= current->priority) {
+                p->priority = priority; 
+                release(&p->lock);
+                return 0; 
+				
+            } else {
+                printf("ret -1\n");
+				release(&p->lock);
+                return -1; 
+            }
+        }
+        release(&p->lock);        
+    }
+	
+
+    return -1; 
 }
