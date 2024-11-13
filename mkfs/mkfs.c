@@ -135,6 +135,8 @@ main(int argc, char *argv[])
 		char *shortname;
 		if (strncmp(argv[i], "user/", 5) == 0)
 			shortname = argv[i] + 5;
+		else if (strncmp(argv[i], "container_specifications/", 25) == 0)
+        	shortname = argv[i] + 25;
 		else
 			shortname = argv[i];
 

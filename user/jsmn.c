@@ -26,7 +26,7 @@
  * Allocates a fresh unused token from the token pool.
  */
 static jsmntok_t *
-jsmn_alloc_token(jsmn_parser *parser, jsmntok_t *tokens, const size_t num_tokens) {
+jsmn_alloc_token(jsmn_parser *parser, jsmntok_t *tokens, const xv6_size_t num_tokens) {
   jsmntok_t *tok;
   if (parser->toknext >= num_tokens) {
     return NULL;
@@ -55,7 +55,7 @@ jsmn_fill_token(jsmntok_t *token, const jsmntype_t type, const int start, const 
  * Fills next available token with JSON primitive.
  */
 static int 
-jsmn_parse_primitive(jsmn_parser *parser, const char *js, const size_t len, jsmntok_t *tokens, const size_t num_tokens) {
+jsmn_parse_primitive(jsmn_parser *parser, const char *js, const xv6_size_t len, jsmntok_t *tokens, const xv6_size_t num_tokens) {
   jsmntok_t *token;
   int start;
 
@@ -112,7 +112,7 @@ found:
  * Fills next token with JSON string.
  */
 static int 
-jsmn_parse_string(jsmn_parser *parser, const char *js, const size_t len, jsmntok_t *tokens, const size_t num_tokens) {
+jsmn_parse_string(jsmn_parser *parser, const char *js, const xv6_size_t len, jsmntok_t *tokens, const xv6_size_t num_tokens) {
   jsmntok_t *token;
 
   int start = parser->pos;
@@ -186,7 +186,7 @@ jsmn_parse_string(jsmn_parser *parser, const char *js, const size_t len, jsmntok
  * Parse JSON string and fill tokens.
  */
 int 
-jsmn_parse(jsmn_parser *parser, const char *js, const size_t len,
+jsmn_parse(jsmn_parser *parser, const char *js, const xv6_size_t len,
                         jsmntok_t *tokens, const unsigned int num_tokens) {
   int r;
   int i;

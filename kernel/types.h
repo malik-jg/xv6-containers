@@ -11,4 +11,4 @@ typedef unsigned long  uint64;
 
 typedef uint64 pde_t;
 
-typedef uint size_t;
+typedef uint xv6_size_t;
