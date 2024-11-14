@@ -24,7 +24,8 @@
 #ifndef JSMN_H
 #define JSMN_H
 #include "kernel/types.h"
-
+#define MAX_TOKENS 7
+#define MAX_TOKEN_LENGTH 512
 /**
  * JSON type identifier. Basic types are:
  * 	o Object

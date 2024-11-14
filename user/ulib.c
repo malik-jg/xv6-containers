@@ -24,6 +24,17 @@ strcpy(char *s, const char *t)
 	return os;
 }
 
+char *
+strncpy(char *s, const char *t, int n)
+{
+	char *os;
+
+	os = s;
+	while ((*s++ = *t++) != 0 && --n > 0)
+		;
+	return os;
+}
+
 int
 strcmp(const char *p, const char *q)
 {
