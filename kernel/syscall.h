@@ -20,3 +20,6 @@
 #define SYS_link 19
 #define SYS_mkdir 20
 #define SYS_close 21
+#define SYS_cm_create_and_enter 22
+#define SYS_cm_setroot 23
+#define SYS_cm_maxproc 24

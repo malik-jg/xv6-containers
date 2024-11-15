@@ -89,3 +89,28 @@ sys_uptime(void)
 	release(&tickslock);
 	return xticks;
 }
+
+uint64
+sys_cm_create_and_enter(void){
+	return cm_create_and_enter();
+}
+
+uint64
+sys_cm_setroot(void){
+	char path[64];
+	int   path_length;
+
+	argstr(0, path, 64);
+	argint(1, &path_length);
+
+	return cm_setroot(path, path_length);
+}
+
+uint64
+sys_cm_maxproc(void){
+	int maxprocs;
+
+	argint(0, &maxprocs);
+
+	return cm_maxproc(maxprocs);
+}

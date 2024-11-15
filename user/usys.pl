@@ -36,3 +36,6 @@ entry("getpid");
 entry("sbrk");
 entry("sleep");
 entry("uptime");
+entry("cm_create_and_enter");
+entry("cm_setroot");
+entry("cm_maxproc");

@@ -187,5 +187,10 @@ void virtio_disk_init(void);
 void virtio_disk_rw(struct buf *, int);
 void virtio_disk_intr(void);
 
+// For Containers
+int cm_create_and_enter(void);
+int cm_setroot(char *path, int path_length);
+int cm_maxproc(int maxprocs);
+
 // number of elements in fixed-size array
 #define NELEM(x) (sizeof(x) / sizeof((x)[0]))

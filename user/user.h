@@ -22,6 +22,9 @@ int   getpid(void);
 char *sbrk(int);
 int   sleep(int);
 int   uptime(void);
+int   cm_create_and_enter(void);
+int   cm_setroot(char *, int);
+int   cm_maxproc(int);
 
 // ulib.c
 int   stat(const char *, struct stat *);
