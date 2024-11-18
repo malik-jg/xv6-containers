@@ -89,3 +89,105 @@ sys_uptime(void)
 	release(&tickslock);
 	return xticks;
 }
+
+
+
+
+uint64
+sys_mutex_create(void){
+	char name[16]; //buffer 16 bytes 16 chars
+	//cannot create
+	if (argstr(0, name, sizeof(name)) < 0){
+		return -1;
+	}
+
+	//return the mutex that is created, will return -1 if cannot create oen
+	return mutex_create(name);
+
+}
+
+
+
+uint64
+sys_mutex_delete(void){
+	//will be passed onto the mutex_delete in proc.c
+	int muxid;
+
+	argint(0, &muxid);
+
+	if (muxid < 0){
+		return -1;
+	}
+
+
+	mutex_delete(muxid);
+	//deleted return 0, success
+	return 0;
+}
+
+
+
+uint64
+sys_mutex_lock(void){
+	int muxid;
+
+	argint(0, &muxid);
+
+	if (muxid < 0){
+		return -1;
+	}
+
+	mutex_lock(muxid);
+	return 0;
+}
+
+
+
+
+uint64
+sys_mutex_unlock(void){
+
+	int muxid;
+
+	argint(0, &muxid);
+
+	if (muxid < 0){
+		return -1;
+	}
+	//mutex unlock will return -1 if not unlocked
+	mutex_unlock(muxid);
+	return 0;
+}
+
+
+//do later
+int
+sys_cv_wait(void) {
+    int muxid;
+    argint(0, &muxid);
+
+    if (muxid < 0) {
+        return -1;
+    }
+
+    cv_wait(muxid);
+    return 0;
+}
+
+
+
+
+
+int
+sys_cv_signal(void) {
+    int muxid;
+
+    argint(0, &muxid);
+
+    if (muxid < 0) {
+        return -1;
+    }
+
+    cv_signal(muxid);
+    return 0;
+}

@@ -123,6 +123,14 @@ extern uint64 sys_link(void);
 extern uint64 sys_mkdir(void);
 extern uint64 sys_close(void);
 
+
+extern uint64 sys_mutex_create(void);
+extern uint64 sys_mutex_delete(void);
+extern uint64 sys_mutex_lock(void);
+extern uint64 sys_mutex_unlock(void);
+extern uint64 sys_cv_wait(void);
+extern uint64 sys_cv_signal(void);
+
 // An array mapping syscall numbers from syscall.h
 // to the function that handles the system call.
 static uint64 (*syscalls[])(void) = {
@@ -131,7 +139,9 @@ static uint64 (*syscalls[])(void) = {
   [SYS_chdir] sys_chdir, [SYS_dup] sys_dup,       [SYS_getpid] sys_getpid, [SYS_sbrk] sys_sbrk,
   [SYS_sleep] sys_sleep, [SYS_uptime] sys_uptime, [SYS_open] sys_open,     [SYS_write] sys_write,
   [SYS_mknod] sys_mknod, [SYS_unlink] sys_unlink, [SYS_link] sys_link,     [SYS_mkdir] sys_mkdir,
-  [SYS_close] sys_close,
+  [SYS_close] sys_close, [SYS_mutex_create] sys_mutex_create, [SYS_mutex_delete] sys_mutex_delete, 
+  [SYS_mutex_lock] sys_mutex_lock, [SYS_mutex_unlock] sys_mutex_unlock, [SYS_cv_wait] sys_cv_wait,
+  [SYS_cv_signal] sys_cv_signal,
 };
 
 void

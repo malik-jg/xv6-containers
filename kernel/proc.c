@@ -6,9 +6,41 @@
 #include "proc.h"
 #include "defs.h"
 
+
+
+#define MAX_MAXNUM 20
+
+
 struct cpu cpus[NCPU];
 
 struct proc proc[NPROC];
+
+
+
+struct mutex {
+	int id;  //mutex id
+	int status; //locked or not, 0 unlocked, 1 locked
+	int owner_id; //parent mutexid
+	struct spinlock lk; //spinlock for mutexes
+};
+//struct mutex mutexes[MAX_MAXNUM];
+//make all the mutxes off rip
+
+
+struct mutex global_locks[MAX_MAXNUM];
+struct spinlock mutexes_lock;
+
+void init_mutexes(void){
+	//old hwk
+	initlock(&mutexes_lock, "mutexes_lock");
+
+	for (int i = 0; i < MAX_MAXNUM; i++){
+		initlock(&global_locks[i].lk, "lock");
+		global_locks[i].id = i;
+		global_locks[i].status = 0;
+		global_locks[i].owner_id = -1;
+	}
+}
 
 struct proc *initproc;
 
@@ -47,6 +79,7 @@ void
 procinit(void)
 {
 	struct proc *p;
+	init_mutexes();
 
 	initlock(&pid_lock, "nextpid");
 	initlock(&wait_lock, "wait_lock");
@@ -669,4 +702,161 @@ procdump(void)
 		printf("%d %s %s", p->pid, state, p->name);
 		printf("\n");
 	}
+}
+
+
+
+
+
+
+
+int 
+mutex_create(char *name){
+
+	acquire(&mutexes_lock);
+
+	for (int i = 0; i < MAX_MAXNUM; i++){
+		if (global_locks[i].status == 0){
+			//acquired
+			global_locks[i].status = 1;
+			//need to make the parent stuff
+			global_locks[i].owner_id = myproc()->pid;
+			release(&mutexes_lock);
+			printf("725");
+			return i;
+
+		}
+	}
+	release(&mutexes_lock);
+	//no available mutex, return -1, make 
+	printf("732");
+	return -1;
+}
+
+
+void 
+mutex_delete(int muxid){
+
+	acquire(&mutexes_lock);
+    if (muxid < 0 || muxid >= MAX_MAXNUM){
+		printf("742");
+        return;
+	}
+
+
+    if (global_locks[muxid].status == 1) {    
+        global_locks[muxid].status = 0;       
+        global_locks[muxid].owner_id = -1;
+
+    }
+
+	release(&mutexes_lock);
+}
+
+
+void 
+mutex_lock(int muxid){
+	//lock
+	if (muxid < 0 || muxid >= MAX_MAXNUM){
+		printf("761");
+		return;
+	}
+
+	struct mutex *lk = &global_locks[muxid];
+
+
+	if (lk->owner_id != myproc()->pid) {
+		printf("769");
+        exit(0);
+    }
+
+		//blocking lock
+	acquire(&lk->lk);
+	while(lk->status == 1){
+		sleep(lk, &lk->lk);
+	}
+	lk->status = 1;
+	lk->owner_id = myproc()->pid;
+	release(&lk->lk);
+
+
+}
+
+
+void 
+mutex_unlock(int muxid){
+
+
+    if (muxid < 0 || muxid >= MAX_MAXNUM){
+		exit(0);
+	} 
+
+    struct mutex *lk = &global_locks[muxid];
+    acquire(&lk->lk);
+
+    if (lk->owner_id != myproc()->pid) {
+		release(&lk->lk);
+		printf("799");
+		exit(0);
+    }
+
+    lk->status = 0;
+    lk->owner_id = -1;
+    wakeup(lk);	
+	printf("806");
+    release(&lk->lk);
+}
+
+
+void 
+cv_wait(int muxid){
+
+	if (muxid < 0 || muxid >= MAX_MAXNUM) {
+	printf("815");
+        exit(0);
+    }
+
+    struct mutex *lk = &global_locks[muxid];
+
+    acquire(&lk->lk);
+
+    if (lk->owner_id != myproc()->pid) {
+        release(&lk->lk);
+		printf("825");
+        exit(0);
+    }
+
+    lk->status = 0;
+    lk->owner_id = -1;
+
+    sleep(lk, &lk->lk);
+
+    acquire(&lk->lk);
+    lk->status = 1;
+    lk->owner_id = myproc()->pid;
+
+    release(&lk->lk);
+	printf("839");
+
+}
+
+
+void 
+cv_signal(int muxid){
+
+    if (muxid < 0 || muxid >= MAX_MAXNUM) {
+        exit(0);
+    }
+
+    struct mutex *lk = &global_locks[muxid];
+
+    acquire(&lk->lk);
+
+    if (lk->status == 0) {
+        // Wake up any threads waiting on this mutex
+        wakeup(lk);
+    }
+
+    release(&lk->lk);
+
 }
