@@ -8,8 +8,6 @@
 
 
 
-#define MAX_MAXNUM 20
-
 
 struct cpu cpus[NCPU];
 
@@ -23,24 +21,7 @@ struct mutex {
 	int owner_id; //parent mutexid
 	struct spinlock lk; //spinlock for mutexes
 };
-//struct mutex mutexes[MAX_MAXNUM];
-//make all the mutxes off rip
-
-
-struct mutex global_locks[MAX_MAXNUM];
-struct spinlock mutexes_lock;
-
-void init_mutexes(void){
-	//old hwk
-	initlock(&mutexes_lock, "mutexes_lock");
-
-	for (int i = 0; i < MAX_MAXNUM; i++){
-		initlock(&global_locks[i].lk, "lock");
-		global_locks[i].id = i;
-		global_locks[i].status = 0;
-		global_locks[i].owner_id = -1;
-	}
-}
+struct mutex all_locks[MAX_MAXNUM];
 
 struct proc *initproc;
 
@@ -710,8 +691,37 @@ procdump(void)
 
 
 
+/*
+
+// 	int id;  //mutex id
+// 	int status; //locked or not, 0 unlocked, 1 locked
+// 	int owner_id; //parent mutexid
+// 	struct spinlock lk; //spinlock for mutexes
+// };
+*/
+
 int 
 mutex_create(char *name){
+
+	struct proc * process = myproc();
+	for (int i = 0; i < MAX_MAXNUM; i++) {
+		//if the lock is open
+		if (all_locks[i].status == 0) {
+			//it's now valid, held by nothing
+			all_locks[i].id = i; 
+			all_locks[i].status = 1;
+			//one lock has access
+			all_locks[i].owner_id = proc->
+			//add this to the lock table in process
+			// process->lock_table[process->lock_count] = &all_locks[i];
+			// //the lock table now contains this
+			// process->lock_count++;
+			//return i, which will be the ID
+			return i;
+		}
+	}
+	//no space was found
+	return -1;
 
 	acquire(&mutexes_lock);
 
