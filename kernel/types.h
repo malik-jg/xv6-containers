@@ -9,6 +9,7 @@ typedef unsigned long  uint64;
 
 typedef uint64 pde_t;
 
+#define MAX_MAXNUM 20
 
 
 int mutex_create(char *name);
