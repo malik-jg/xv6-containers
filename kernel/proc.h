@@ -132,4 +132,15 @@ struct proc {
 	struct file      *ofile[NOFILE]; // Open files
 	struct inode     *cwd;           // Current directory
 	char              name[16];      // Process name (debugging)
+
+
+	struct mutex_table mutex_table;
+
+	int mutex_count;
+	
+	struct mutex_table {
+    	struct mutex *mutex[MAX_MAXNUM]; 
+    	//currently held mutexes
+    	
+		};
 };

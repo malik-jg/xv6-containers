@@ -15,12 +15,6 @@ struct proc proc[NPROC];
 
 
 
-struct mutex {
-	int id;  //mutex id
-	int status; //locked or not, 0 unlocked, 1 locked
-	int owner_id; //parent mutexid
-	struct spinlock lk; //spinlock for mutexes
-};
 struct mutex all_locks[MAX_MAXNUM];
 
 struct proc *initproc;
@@ -708,38 +702,19 @@ mutex_create(char *name){
 		//if the lock is open
 		if (all_locks[i].status == 0) {
 			//it's now valid, held by nothing
-			all_locks[i].id = i; 
+			all_locks[i].mutex_id = i; 
 			all_locks[i].status = 1;
-			//one lock has access
-			all_locks[i].owner_id = proc->
-			//add this to the lock table in process
-			// process->lock_table[process->lock_count] = &all_locks[i];
-			// //the lock table now contains this
-			// process->lock_count++;
+			//proc that has mutex pid
+			all_locks[i].owner_id = process->pid;
+			// add this to the lock table in process
+			process->mutex_table[process->mutex_count] = &all_locks[i];
+			//the lock table now contains this
+			process->mutex_count++;
 			//return i, which will be the ID
 			return i;
 		}
 	}
 	//no space was found
-	return -1;
-
-	acquire(&mutexes_lock);
-
-	for (int i = 0; i < MAX_MAXNUM; i++){
-		if (global_locks[i].status == 0){
-			//acquired
-			global_locks[i].status = 1;
-			//need to make the parent stuff
-			global_locks[i].owner_id = myproc()->pid;
-			release(&mutexes_lock);
-			printf("725");
-			return i;
-
-		}
-	}
-	release(&mutexes_lock);
-	//no available mutex, return -1, make 
-	printf("732");
 	return -1;
 }
 
@@ -747,106 +722,136 @@ mutex_create(char *name){
 void 
 mutex_delete(int muxid){
 
-	acquire(&mutexes_lock);
-    if (muxid < 0 || muxid >= MAX_MAXNUM){
-		printf("742");
-        return;
+	struct proc * process = myproc();
+
+	int flag = -1;
+
+	for (int i = 0; i < process->mutex_count; i++) {
+		if (process->mutex_table[i]->mutex_id == muxid) {
+			//the lock needed to be deleted, one fewer reference
+			process->mutex_table[i]->referenced_by--;
+			flag = i;
+		}
+		//move to the left afterwards
+		if (flag != -1 && i < process->mutex_count - 1) {
+			//move to the left
+			process->mutex_table[i] = process->mutex_table[i+1];
+			process->mutex_table[i+1]->valid = 0;
+		}
+		//one fewer lock
+		process->mutex_count--;
+
 	}
-
-
-    if (global_locks[muxid].status == 1) {    
-        global_locks[muxid].status = 0;       
-        global_locks[muxid].owner_id = -1;
-
-    }
-
-	release(&mutexes_lock);
+	//delete lock if nothing holds it
+	if (all_locks[muxid].referenced_by == 0) {
+		all_locks[muxid].status = 0;
+	}
 }
 
 
 void 
 mutex_lock(int muxid){
 	//lock
-	if (muxid < 0 || muxid >= MAX_MAXNUM){
-		printf("761");
-		return;
+//find the process
+	struct proc * p = myproc();
+
+	int flag = 0; 
+	//go look for if the process has access
+	for (int i = 0; i < p->mutex_count; i++) {
+		if (p->mutex_table[i]->lock_id == muxid) {
+			flag = 1;
+		}
+	}
+	//doesnt have access or doesnt exists
+	if (flag == 0) {
+		return -1;
+	}
+	//get the lock
+	struct mutex * cur_l = &all_locks[muxid];
+
+	//if it's already holding it
+	if (cur_l->owner_id == myproc()->pid) {
+		return -1;
 	}
 
-	struct mutex *lk = &global_locks[muxid];
-
-
-	if (lk->owner_id != myproc()->pid) {
-		printf("769");
-        exit(0);
-    }
-
-		//blocking lock
-	acquire(&lk->lk);
-	while(lk->status == 1){
-		sleep(lk, &lk->lk);
+	//checks type of lock, most of this code is adapted from spinlock and sleeploc
+	acquire(&cur_l->lk);
+	while(cur_l->status == 1) {
+		//sleeps while lock is held
+		sleep(cur_l, &cur_l->lk);
 	}
-	lk->status = 1;
-	lk->owner_id = myproc()->pid;
-	release(&lk->lk);
-
-
+	//held now
+	cur_l -> status = 1;
+	cur_l -> owner_id = p->pid;
+	release(&cur_l->lk);
+	return 0;
 }
 
 
 void 
 mutex_unlock(int muxid){
 
+	struct proc * p = myproc();
 
-    if (muxid < 0 || muxid >= MAX_MAXNUM){
-		exit(0);
-	} 
-
-    struct mutex *lk = &global_locks[muxid];
-    acquire(&lk->lk);
-
-    if (lk->owner_id != myproc()->pid) {
-		release(&lk->lk);
-		printf("799");
-		exit(0);
-    }
-
-    lk->status = 0;
-    lk->owner_id = -1;
-    wakeup(lk);	
-	printf("806");
-    release(&lk->lk);
+	int flag = 0; 	
+	//make sure this process has access to it
+	for (int i = 0; i < p->mutex_count; i++) {
+		if (p->mutex_table[i]->lock_id == muxid) {
+			flag = 1;
+		}
+	}
+	//if wasnt found, break with errors
+	if (flag == 0) {
+		return -1;
+	}
+	//get the lock
+	struct mutex *cur_l = &all_locks[muxid];
+	//if the process doesnt hold 
+	if (cur_l -> owner_id != myproc()->pid) {
+		return -1;
+	}
+	//pretty much just got this idea from sleeplock 
+	acquire(&cur_l->lk);
+	cur_l -> status = 0;
+	cur_l -> owner_id = 0;
+	wakeup(cur_l);
+	release(&cur_l->lk);
+	//success
+	return 0;
 }
 
 
 void 
 cv_wait(int muxid){
 
-	if (muxid < 0 || muxid >= MAX_MAXNUM) {
-	printf("815");
-        exit(0);
-    }
+	// if (muxid < 0 || muxid >= MAX_MAXNUM) {
+	// printf("815");
+    //     exit(0);
+    // }
 
-    struct mutex *lk = &global_locks[muxid];
+    // struct mutex *cur_l = &all_locks[muxid];
 
-    acquire(&lk->lk);
+    // acquire(&lk->lk);
 
-    if (lk->owner_id != myproc()->pid) {
-        release(&lk->lk);
-		printf("825");
-        exit(0);
-    }
+    // if (lk->owner_id != myproc()->pid) {
+    //     release(&lk->lk);
+	// 	printf("825");
+    //     exit(0);
+    // }
 
-    lk->status = 0;
-    lk->owner_id = -1;
+    // lk->status = 0;
+    // lk->owner_id = -1;
 
-    sleep(lk, &lk->lk);
+    // sleep(lk, &lk->lk);
 
-    acquire(&lk->lk);
-    lk->status = 1;
-    lk->owner_id = myproc()->pid;
+    // acquire(&lk->lk);
+    // lk->status = 1;
+    // lk->owner_id = myproc()->pid;
 
-    release(&lk->lk);
-	printf("839");
+    // release(&lk->lk);
+	// printf("839");
+
+	exit(0);
 
 }
 
@@ -854,19 +859,21 @@ cv_wait(int muxid){
 void 
 cv_signal(int muxid){
 
-    if (muxid < 0 || muxid >= MAX_MAXNUM) {
-        exit(0);
-    }
+    // if (muxid < 0 || muxid >= MAX_MAXNUM) {
+    //     exit(0);
+    // }
+	
+	// struct mutex *cur_l = &all_locks[muxid];
 
-    struct mutex *lk = &global_locks[muxid];
+    // acquire(&cur_l->lk);
 
-    acquire(&lk->lk);
+    // if (all_locks[i]->status == 0) {
+    //     // Wake up any threads waiting on this mutex
+    //     wakeup(lk);
+    // }
 
-    if (lk->status == 0) {
-        // Wake up any threads waiting on this mutex
-        wakeup(lk);
-    }
+    // release(&lk->lk);
 
-    release(&lk->lk);
+	exit(0);
 
 }

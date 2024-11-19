@@ -18,3 +18,14 @@ void mutex_lock(int muxid);
 void mutex_unlock(int muxid);
 void cv_wait(int muxid);
 void cv_signal(int muxid);
+
+
+struct mutex {
+	int mutex_id;  //mutex id
+	int status; //locked or not, 0 unlocked, 1 locked
+	int owner_id; //parent mutexid
+	struct spinlock lk; //spinlock for mutexes
+    int referenced_by;   //ref or no ref
+};
+
+
