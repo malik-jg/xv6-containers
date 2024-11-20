@@ -683,29 +683,29 @@ int prio_set(int pid, int priority) {
         acquire(&p->lock);  
         // if we find match, set the priority
 		if (p->pid == pid) {
-            printf("In cond \n");
+            //printf("In cond \n");
 			p->priority = priority; 
             struct proc *prev_proc = p;
-            int is_prev = 0;
+            //int is_prev = 0;
             // go up the chain of procs
 			while (prev_proc) {
 				// if the current proc shares pid, we are good
-                printf("in while \n");
+                //printf("in while \n");
 				if (prev_proc == current) {
-                    printf("going to break \n");
-					is_prev = 1;
+                    //printf("going to break \n");
+					//is_prev = 1;
                     break;
                 }
                 prev_proc = prev_proc->parent; //iterate
             }
 			// update priority if condition is met
-            if (is_prev && priority >= current->priority) {
+            if (priority >= current->priority) {
                 p->priority = priority; 
                 release(&p->lock);
                 return 0; 
-				
+
             } else {
-                printf("ret -1\n");
+                //printf("ret -1\n");
 				release(&p->lock);
                 return -1; 
             }
