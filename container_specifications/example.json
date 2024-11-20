@@ -1,1 +1,1 @@
-{ "init": "/sh", "fs": "/c1/", "nproc": 4 }
+{ "init": "/sh", "fs": "/c1", "nproc": 4 }

@@ -3,7 +3,7 @@
 #include "user/debug.h"
 #include "user/cm.h"
 #include "kernel/fcntl.h"
-
+#include "kernel/stat.h"
 
 char *
 read_file(const char *filename){
@@ -13,14 +13,14 @@ read_file(const char *filename){
         return NULL; //or exit()?
     }
 
-    char *buffer = malloc(BUFFER_SIZE);
+    char *buffer = malloc(JSON_BUFFER_SIZE);
     if(!buffer){
         printf("ERROR: Memory allocation for buffer failed\n");
         close(fd);
         return NULL; //or exit()?
     }
 
-    int n = read(fd, buffer, BUFFER_SIZE - 1);
+    int n = read(fd, buffer, JSON_BUFFER_SIZE - 1);
     if(n < 0){
         printf("ERROR: Could not read file %s\n", filename);
         free(buffer);
@@ -87,6 +87,86 @@ parse_json(const char *js){
     return token_values;
 }
 
+int
+directory_exists(const  char *path){
+    struct stat st;
+    if(stat(path, &st) == 0){
+        if(st.type == T_DIR){
+            return 0;
+        }
+        else{
+            printf("ERROR: %s exists but is not a directory\n", path);
+            return -1;
+        }
+    }
+
+    if(mkdir(path) < 0){
+        printf("ERROR: Failed to create directory %s\n", path);
+        return -1;
+    }
+    return 0;
+}
+
+int 
+copy_file(const char *src, const char *dst){
+    int fdsrc = open(src, O_RDONLY);
+    if(fdsrc < 0){
+        printf("ERROR: Failed to open source file %s\n", src);
+        return -1;
+    }
+
+    int fddst = open(dst, O_WRONLY | O_CREATE | O_TRUNC);
+    if(fddst < 0){
+        printf("ERROR: Failed to open destination file %s\n", dst);
+        close(fdsrc);
+        return -1;
+    }
+    int bytesRead, bytesWritten;
+    char buffer[COPY_FILE_BUFFER_SIZE];
+    while((bytesRead = read(fdsrc, buffer, COPY_FILE_BUFFER_SIZE)) > 0){
+        bytesWritten = write(fddst, buffer, bytesRead);
+        if(bytesWritten < bytesRead){
+            printf("ERROR: Failed to write to destination file %s\n", dst);
+            close(fdsrc);
+            close(fddst);
+            return -1;
+        }   
+    }
+    if(bytesRead < 0){
+        printf("ERROR: Failed to read from source file %s\n", src);
+        close(fdsrc);
+        close(fddst);
+        return -1;
+    }
+    close(fdsrc);
+    close(fddst);
+    return 0;
+}
+
+int
+copy_files_to_container(const char *dirname){
+    char *files[] = {COPY_FILES};
+    for(int i = 0; i < NUM_COPY_FILES; i++){
+        char src[64];
+        char dst[64];
+
+        strcpy(src, files[i]);
+        strcpy(dst, dirname);
+
+        int len = strlen(dst);
+        dst[len] = '/';
+        strcpy(dst + len + 1, src);
+
+        if(copy_file(src, dst) < 0){
+            printf("ERROR: Failed to copy file %s to %s\n", src, dst);
+            return -1;
+        }
+        printf("Copied %s to %s\n", src, dst);
+    }
+
+
+    return 0;
+} 
 
 void 
 cm(const char *filename){
@@ -113,6 +193,16 @@ cm(const char *filename){
     int pid = fork();
 
     if(pid == 0){
+        int dir_status = directory_exists(root_fs);
+        if(dir_status < 0){
+            printf("ERROR: Failed to check if directory exists\n");
+            exit(1);
+        }
+        int copy_status = copy_files_to_container(root_fs);
+        if(copy_status < 0){
+            printf("ERROR: Failed to copy files to container\n");
+            exit(1);
+        }
         int cm_status = cm_create_and_enter();
         if(cm_status < 0){
 			printf("ERROR: Failed to create and enter container\n");
@@ -128,6 +218,7 @@ cm(const char *filename){
             printf("ERROR: Failed to set max number of processes\n");
             exit(1);
         }
+        printf("SUCCESS");
     }
     wait(0);
 
@@ -137,15 +228,38 @@ cm(const char *filename){
     }
     free(token_values);
     free(json_content);
-
+    
 }
 
 int 
-main(int argc, char *argv[]) {
-    printf("Container Manager Starting\n");
+main(int argc, char *argv[]){
+    printf("Container Manager starting...\n");
     printf("CM awaiting requests...\n");
-    for(;;){
-        
+
+    int fd = open(REQUEST_FILE, O_WRONLY | O_CREATE);
+    if(fd < 0){
+        printf("Error: Could not create or access the request file\n");
+        exit(1);
     }
+    close(fd);
+
+    char buffer[REQUEST_BUFFER_SIZE];
+    for(;;){
+        fd = open(REQUEST_FILE, O_RDONLY);
+        if(fd < 0){
+            printf("Error: Could not open request file.\n");
+            exit(1);
+        }
+        int n = read(fd, buffer, sizeof(buffer) - 1);
+        close(fd);
+        if(n > 0){
+            buffer[n] = '\0';
+            cm(buffer);
+            unlink(REQUEST_FILE);
+            break;
+        } 
+        sleep(1);
+    }
+
     return 0;
 }
