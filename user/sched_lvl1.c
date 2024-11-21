@@ -7,30 +7,47 @@ int main(void) {
     // make success or fail conditional to interp output
     // test parent child relationship
     // test edge cases 
-    int pid;
-    int priority = 0;
     //int prio1 = 1;
-    int res = 0;
-    for (int i = 0; i < 8; i++) {
-        //printf("%s ", "Here");
-        pid = fork();
+   
+    int prio = 5;
+    int curr_pid = getpid();
+    // printf("Printing curr_pid: ");
+    // printf("%d\n", curr_pid);
+    prio_set(curr_pid, prio);
+    int res = prio_get(curr_pid);
+    
+    // printf("Priority get = ");
+    // printf("%d \n", res);
 
-        if (pid == 0) {
-            res = prio_set(pid, priority) ;
-             
-        }
-        else{
-            continue;
-            
-        }
-        if (res == 0) {
-            printf("Priority Set Successfully \n");
-        }
-        else {
-            printf("Failed Priority Set \n");
-        }
-        printf("iteration");
+    if (res == prio) {
+        printf("SUCCESS LVL 1 \n");
     }
+    else {
+        printf("FAIL LVL 1 \n");
+    }
+
+
+
+    // for (int i = 0; i < 8; i++) {
+    //     //printf("%s ", "Here");
+    //     pid = fork();
+
+    //     if (pid == 0) {
+    //         res = prio_set(pid, priority) ;
+             
+    //     }
+    //     else{
+    //         continue;
+            
+    //     }
+    //     if (res == 0) {
+    //         printf("Priority Set Successfully \n");
+    //     }
+    //     else {
+    //         printf("Failed Priority Set \n");
+    //     }
+    //     printf("iteration");
+    // }
     // int res = 0;
     // if (pid == 0) {
     //     res = prio_set(pid, priority);

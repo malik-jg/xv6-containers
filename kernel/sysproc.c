@@ -96,7 +96,19 @@ sys_uptime(void)
 	int pid;
 	int priority;
 	argint(0, &pid);
-	argint(0, &priority);
+	argint(1, &priority);
+	// printf("Printing sys_proc priority: ");
+	// printf("%d\n", priority);
 	return prio_set(pid, priority);
 	
  }
+
+ uint64 
+ sys_prio_get(void) 
+ {
+	int pid;
+	argint(0, &pid);
+	return prio_get(pid);
+	
+ }
+

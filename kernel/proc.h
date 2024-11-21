@@ -110,7 +110,7 @@ struct prioNode {
 
 // hashmap for priorities
 struct prioMap {
-    prioNode *buckets[PRIOMAX];
+    struct prioNode *buckets[PRIOMAX];
 };
 // --------------------------------------------------------------------------
 

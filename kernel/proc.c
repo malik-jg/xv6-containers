@@ -7,18 +7,18 @@
 #include "defs.h"
 // --------------------------------------------------------------------------
 // priority map
-#define PRIOMAX 8
-// node for hash map
-typedef struct prioNode {
-    char *key;
-    int priority;
-    struct prioNode *next;
-} prioNode;
+// #define PRIOMAX 8
+// // node for hash map
+// typedef struct prioNode {
+//     char *key;
+//     int priority;
+//     struct prioNode *next;
+// } prioNode;
 
-// hashmap for priorities
-typedef struct prioMap {
-    prioNode *buckets[PRIOMAX];
-} prioMap;
+// // hashmap for priorities
+// typedef struct prioMap {
+//     prioNode *buckets[PRIOMAX];
+// } prioMap;
 
 // --------------------------------------------------------------------------
 
@@ -688,9 +688,28 @@ procdump(void)
 	}
 }
 
+
+int prio_get(int pid) {
+	struct proc *p;
+	for (p = proc; p < &proc[NPROC]; p++) {
+        acquire(&p->lock);  
+		if (p -> pid == pid) {
+			release(&p->lock);
+			// printf("returning the prio from prio_get \n");
+			// printf("%d\n", p -> priority);
+			return p -> priority;
+		}
+		release(&p->lock);
+	}
+	return -1;
+}
+
+
 // scheduling sys calls
 int prio_set(int pid, int priority) {
 	// ret 0 on SUCCESS | ret -1 on FAIL
+	//printf("Printing priority input: ");
+	//printf("%d\n", priority);
 	
 	// init new struct and get the current process struct
 	struct proc *p;
@@ -701,7 +720,7 @@ int prio_set(int pid, int priority) {
         // if we find match, set the priority
 		if (p->pid == pid) {
             //printf("In cond \n");
-			p->priority = priority; 
+			//p->priority = priority; 
             struct proc *prev_proc = p;
             //int is_prev = 0;
             // go up the chain of procs
@@ -717,7 +736,10 @@ int prio_set(int pid, int priority) {
             }
 			// update priority if condition is met
             if (priority >= current->priority) {
-                p->priority = priority; 
+                // printf("Setting Priority To: ");
+				// printf("%d\n", p -> priority);
+
+				p->priority = priority; 
                 release(&p->lock);
                 return 0; 
 

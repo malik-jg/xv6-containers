@@ -44,3 +44,4 @@ void  free(void *);
 
 //scheduling sys calls
 int prio_set(int pid, int priority);
+int prio_get(int pid);

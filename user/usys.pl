@@ -38,3 +38,4 @@ entry("sleep");
 entry("uptime");
 # scheduling sys calls
 entry("prio_set");
+entry("prio_get");
