@@ -275,51 +275,56 @@ growproc(int n)
 
 // Create a new process, copying the parent.
 // Sets up child kernel stack to return as if from fork() system call.
-int
-fork(void)
-{
-	int          i, pid;
-	struct proc *np;
-	struct proc *p = myproc();
+int fork(void) {
+    int i, pid;
+    struct proc *np;
+    struct proc *p = myproc();
 
-	// Allocate process.
-	if ((np = allocproc()) == 0) { return -1; }
+    if ((np = allocproc()) == 0) {
+        return -1;
+    }
 
-	// Copy user memory from parent to child.
-	if (uvmcopy(p->pagetable, np->pagetable, p->sz) < 0) {
-		freeproc(np);
-		release(&np->lock);
-		return -1;
+    if (uvmcopy(p->pagetable, np->pagetable, p->sz) < 0) {
+        freeproc(np);
+        release(&np->lock);
+        return -1;
+    }
+    np->sz = p->sz;
+
+    *(np->trapframe) = *(p->trapframe);
+    np->trapframe->a0 = 0;
+
+    for (i = 0; i < NOFILE; i++)
+        if (p->ofile[i])
+            np->ofile[i] = filedup(p->ofile[i]);
+    np->cwd = idup(p->cwd);
+
+    safestrcpy(np->name, p->name, sizeof(p->name));
+
+    pid = np->pid;
+
+    // Copy mutex table and increment references
+    for (int i = 0; i < p->mutex_count; i++) {
+       np->mutex_table[i] = p->mutex_table[i];
+    	np->mutex_table[i]->referenced_by++;
 	}
-	np->sz = p->sz;
+	np->mutex_count = p->mutex_count;
 
-	// copy saved user registers.
-	*(np->trapframe) = *(p->trapframe);
+    release(&np->lock);
 
-	// Cause fork to return 0 in the child.
-	np->trapframe->a0 = 0;
+    acquire(&wait_lock);
+    np->parent = p;
+    release(&wait_lock);
 
-	// increment reference counts on open file descriptors.
-	for (i = 0; i < NOFILE; i++)
-		if (p->ofile[i]) np->ofile[i] = filedup(p->ofile[i]);
-	np->cwd = idup(p->cwd);
+    acquire(&np->lock);
+    np->state = RUNNABLE;
+    release(&np->lock);
 
-	safestrcpy(np->name, p->name, sizeof(p->name));
-
-	pid = np->pid;
-
-	release(&np->lock);
-
-	acquire(&wait_lock);
-	np->parent = p;
-	release(&wait_lock);
-
-	acquire(&np->lock);
-	np->state = RUNNABLE;
-	release(&np->lock);
-
-	return pid;
+    return pid;
 }
+
+
+
 
 // Pass p's abandoned children to init.
 // Caller must hold wait_lock.
@@ -682,25 +687,35 @@ procdump(void)
 
 
 
-int 
-mutex_create(char *name) {
+int mutex_create(char *name) {
     struct proc *process = myproc();
 
+    // Find an unused mutex slot in `all_locks`
     for (int i = 0; i < MAX_MAXNUM; i++) {
-        if (all_locks[i].status == 0) {
+        if (all_locks[i].status == 0) { // Unused mutex
             all_locks[i].mutex_id = i;
-            all_locks[i].status = 0; // Initially unlocked
+            all_locks[i].status = 0; // Unlocked
             all_locks[i].owner_id = -1; // No owner
             all_locks[i].referenced_by = 1;
             initsleeplock(&all_locks[i].slock, name);
+
+            // Check if process's mutex table has space
+            if (process->mutex_count >= MAX_MAXNUM) {
+                printf("Process %d mutex table is full\n", process->pid);
+                return -1;
+            }
+
+            // Add mutex to process's mutex table
             process->mutex_table[process->mutex_count] = &all_locks[i];
             process->mutex_count++;
-			printf("Created mutex %d for process %d. Mutex count: %d\n", i, process->pid, process->mutex_count);
-            return i; // Return the mutex ID
+
+            printf("Created mutex %d for process %d. Mutex count: %d\n", i, process->pid, process->mutex_count);
+            return i; // Return the unique mutex ID
         }
     }
-	printf("Failed to create mutex for process %d\n", process->pid);
-    return -1; // No space for a new mutex
+
+    printf("Failed to create mutex for process %d\n", process->pid);
+    return -1; // No available slots in `all_locks`
 }
 
 
@@ -734,19 +749,12 @@ mutex_delete(int muxid){
 }
 
 
-void 
-mutex_lock(int muxid) {
-    struct proc *process = myproc();
-    printf("Process %d mutex table:\n", process->pid);
-    for (int i = 0; i < process->mutex_count; i++) {
-        if (process->mutex_table[i]) {
-            printf("  Mutex ID: %d, Status: %d, Owner: %d\n",
-                   process->mutex_table[i]->mutex_id,
-                   process->mutex_table[i]->status,
-                   process->mutex_table[i]->owner_id);
-        }
-    }
 
+void mutex_lock(int muxid) {
+    struct proc *process = myproc();
+    struct mutex *cur_mutex = &all_locks[muxid];
+
+    // Validate if the process has the mutex in its table
     int found = 0;
     for (int i = 0; i < process->mutex_count; i++) {
         if (process->mutex_table[i]->mutex_id == muxid) {
@@ -757,34 +765,44 @@ mutex_lock(int muxid) {
     if (!found) {
         panic("Invalid mutex ID");
     }
-
-    struct mutex *cur_mutex = &all_locks[muxid];
     acquiresleep(&cur_mutex->slock);
+
     while (cur_mutex->status == 1) {
-        sleep(cur_mutex, &cur_mutex->slock.lk);
+        sleep(&cur_mutex->slock.lk, &cur_mutex->slock.lk); // Use the sleeplock's spinlock
     }
-    cur_mutex->status = 1; // Lock the mutex
+
+    // Lock the mutex
+    cur_mutex->status = 1;
     cur_mutex->owner_id = process->pid;
+
+
     releasesleep(&cur_mutex->slock);
 }
 
-
-
-void
-mutex_unlock(int muxid) {
+void mutex_unlock(int muxid) {
     struct proc *process = myproc();
-
     struct mutex *cur_mutex = &all_locks[muxid];
+
+
+    // Ensure only the owner can unlock
     if (cur_mutex->owner_id != process->pid) {
         panic("Mutex unlock by non-owner");
     }
 
     acquiresleep(&cur_mutex->slock);
-    cur_mutex->status = 0; // Unlock the mutex
+
+    // Unlock the mutex and reset the owner
+    cur_mutex->status = 0;
     cur_mutex->owner_id = -1;
-    wakeup(cur_mutex);
+
+
+    // Wake up all processes waiting for the mutex
+    wakeup(&cur_mutex->slock.lk);
+
     releasesleep(&cur_mutex->slock);
 }
+
+
 
 
 

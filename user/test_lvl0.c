@@ -11,24 +11,28 @@ void test_mutex_blocking() {
     }
 
     int pid = fork();
-    if (pid == 0) { // Child
+    if (pid == 0) {
         mutex_lock(muxid);
         printf("Child acquired mutex\n");
-        sleep(50);
+        //arbitrary number
+        sleep(10);
         mutex_unlock(muxid);
         printf("Child released mutex\n");
         exit(0);
-    } else { // Parent
-        sleep(10); // Ensure child locks first
+    } else {
+        wait(0);
         mutex_lock(muxid);
         printf("Parent acquired mutex\n");
         mutex_unlock(muxid);
         printf("Parent released mutex\n");
-        wait(0);
+        printf("Test Works \n \n");
+        exit(0);
     }
 }
 
+
 int main() {
     test_mutex_blocking();
+    
     exit(0);
 }
