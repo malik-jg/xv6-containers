@@ -100,6 +100,7 @@ enum procstate
 
 // Per-process state
 struct proc {
+	#define SHM_MAXNUM 20
 	struct spinlock lock;
 
 	// p->lock must be held when using these:
@@ -132,4 +133,8 @@ struct proc {
 	struct file      *ofile[NOFILE]; // Open files
 	struct inode     *cwd;           // Current directory
 	char              name[16];      // Process name (debugging)
+
+	int number; 
+
+	struct shmem      shmem_table[SHM_MAXNUM];
 };

@@ -91,8 +91,20 @@ sys_uptime(void)
 }
 
 uint64 sys_shm_get(void) {
-	return 0;
+	//printf("In SYS_SHM_GET\n");
+	uint64 name;
+	argaddr(0, &name);
+
+	char *shared_mem_addr = shm_get((char*)&name);
+	
+	printf("ADDR: %ld\n", (uint64)shared_mem_addr);
+	//printf("Before proc\n");
+	return (uint64) shared_mem_addr;
+	
 }
 uint64 sys_shm_rem(void) {
+	uint64 name;
+	argaddr(0, &name);
+
 	return 0;
 }

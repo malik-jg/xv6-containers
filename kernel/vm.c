@@ -5,7 +5,6 @@
 #include "riscv.h"
 #include "defs.h"
 #include "fs.h"
-
 /*
  * the kernel's page table.
  */
@@ -14,6 +13,8 @@ pagetable_t kernel_pagetable;
 extern char etext[]; // kernel.ld sets this to end of kernel code.
 
 extern char trampoline[]; // trampoline.S
+
+struct shmem shared_memory [SHM_MAXNUM];
 
 // Make a direct-map page table for the kernel.
 pagetable_t
@@ -414,4 +415,48 @@ copyinstr(pagetable_t pagetable, char *dst, uint64 srcva, uint64 max)
 	} else {
 		return -1;
 	}
+}
+
+char *shm_get(char *name) {
+	//check all memory for similarity
+	int len = strlen(name);
+
+	for (int i = 0; i < SHM_MAXNUM; i++) {
+		//printf("First loop: %d\n", i);
+		if (shared_memory[i].reference_count > 0) {
+			//printf("If statement 1\n");
+			int len2 = strlen(shared_memory[i].name);
+			if (len == len2) {
+				if (strncmp(name, shared_memory[i].name, len)) {
+					shared_memory[i].reference_count++;
+
+					return (char*) map_va(shared_memory[i], 1);
+				}
+			}	
+		}
+	}
+	//check for open space
+	for (int i = 0; i < SHM_MAXNUM; i++) {
+		//check if unused
+		//printf("Second loop: %d\n", i);
+		if (shared_memory[i].reference_count == 0) {
+			//unusued
+			//printf("If statement 2\n");
+			shared_memory[i].name = name;
+			//printf("After if statement 2\n");
+			shared_memory[i].page = kalloc();
+			shared_memory[i].reference_count = 1;
+			
+			return (char*)map_va(shared_memory[i], 1);
+			
+		}
+	}
+	
+	
+
+	return "";
+}
+
+int shm_rem(char *name) {
+	return 0;
 }

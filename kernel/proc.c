@@ -6,6 +6,8 @@
 #include "proc.h"
 #include "defs.h"
 
+
+
 struct cpu cpus[NCPU];
 
 struct proc proc[NPROC];
@@ -25,6 +27,9 @@ extern char trampoline[]; // trampoline.S
 // memory model when using p->parent.
 // must be acquired before any p->lock.
 struct spinlock wait_lock;
+
+//shared memory struct
+
 
 // Allocate a page for each process's kernel stack.
 // Map it high in memory, followed by an invalid
@@ -669,4 +674,17 @@ procdump(void)
 		printf("%d %s %s", p->pid, state, p->name);
 		printf("\n");
 	}
+}
+
+uint64 map_va(struct shmem shared, int flag) {
+	struct proc * process = myproc();
+	//printf()
+	printf("PAGE LOCATION: %ld\n", (uint64)&(shared.page));
+
+	mappages(process->pagetable, process->sz, PGSIZE, (uint64)&(shared.page), PTE_R | PTE_W);
+	//pte_t* mapping = walk(process->pagetable, (uint64)(shared.page), flag);	
+	//printf("mapping: %ld\n", PTE2PA(*mapping));
+	process->sz += 4096;
+	
+	return process->sz - PGSIZE;
 }
