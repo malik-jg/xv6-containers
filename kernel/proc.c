@@ -692,16 +692,16 @@ int mutex_create(char *name) {
 
     // Find an unused mutex slot in `all_locks`
     for (int i = 0; i < MAX_MAXNUM; i++) {
-        if (all_locks[i].status == 0) { // Unused mutex
+        if (all_locks[i].status == 0) { 
             all_locks[i].mutex_id = i;
-            all_locks[i].status = 0; // Unlocked
-            all_locks[i].owner_id = -1; // No owner
+            all_locks[i].status = 0; 
+            all_locks[i].owner_id = -1; 
             all_locks[i].referenced_by = 1;
             initsleeplock(&all_locks[i].slock, name);
 
             // Check if process's mutex table has space
             if (process->mutex_count >= MAX_MAXNUM) {
-                printf("Process %d mutex table is full\n", process->pid);
+                printf("Process %d full table \n", process->pid);
                 return -1;
             }
 
@@ -710,12 +710,12 @@ int mutex_create(char *name) {
             process->mutex_count++;
 
             printf("Created mutex %d for process %d. Mutex count: %d\n", i, process->pid, process->mutex_count);
-            return i; // Return the unique mutex ID
+            return i; //mutex_id
         }
     }
 
     printf("Failed to create mutex for process %d\n", process->pid);
-    return -1; // No available slots in `all_locks`
+    return -1; //no avialable,c an't create
 }
 
 
@@ -754,7 +754,7 @@ void mutex_lock(int muxid) {
     struct proc *process = myproc();
     struct mutex *cur_mutex = &all_locks[muxid];
 
-    // Validate if the process has the mutex in its table
+    //Validate if the process has the mutex in its table
     int found = 0;
     for (int i = 0; i < process->mutex_count; i++) {
         if (process->mutex_table[i]->mutex_id == muxid) {
@@ -768,10 +768,10 @@ void mutex_lock(int muxid) {
     acquiresleep(&cur_mutex->slock);
 
     while (cur_mutex->status == 1) {
-        sleep(&cur_mutex->slock.lk, &cur_mutex->slock.lk); // Use the sleeplock's spinlock
+        sleep(&cur_mutex->slock.lk, &cur_mutex->slock.lk); //Use the sleeplock's spinlock
     }
 
-    // Lock the mutex
+    //Lock the mutex
     cur_mutex->status = 1;
     cur_mutex->owner_id = process->pid;
 
@@ -784,19 +784,19 @@ void mutex_unlock(int muxid) {
     struct mutex *cur_mutex = &all_locks[muxid];
 
 
-    // Ensure only the owner can unlock
+    //Ensure only the owner can unlock
     if (cur_mutex->owner_id != process->pid) {
         panic("Mutex unlock by non-owner");
     }
 
     acquiresleep(&cur_mutex->slock);
 
-    // Unlock the mutex and reset the owner
+    //Unlock the mutex and reset the owner
     cur_mutex->status = 0;
     cur_mutex->owner_id = -1;
 
 
-    // Wake up all processes waiting for the mutex
+    //Wake up all processes waiting for the mutex
     wakeup(&cur_mutex->slock.lk);
 
     releasesleep(&cur_mutex->slock);
