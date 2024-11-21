@@ -1,3 +1,16 @@
+
+#include "sleeplock.h"
+
+
+struct mutex {
+	int mutex_id;  //mutex id
+	int status; //locked or not, 0 unlocked, 1 locked
+	int owner_id; //parent mutexid
+	//struct spinlock lk; //spinlock for mutexes
+	int referenced_by;   //ref or no ref	
+	struct sleeplock slock;
+};
+
 // Saved registers for kernel context switches.
 struct context {
 	uint64 ra;
@@ -134,13 +147,25 @@ struct proc {
 	char              name[16];      // Process name (debugging)
 
 
-	struct mutex_table mutex_table;
+	//struct mutex_table *mutex_table;
+	// struct mutex_table{
+    // 	struct mutex *mutex[MAX_MAXNUM]; 
+    // 	//currently held mutexes
+	// 	int mutex_count;
+	// };
+	//struct sleeplock;
+
+
+
+
+	// struct mutex_table{
+	// 	struct mutex *mutex[MAX_MAXNUM];
+	// };
+
+
+
+	struct mutex *mutex_table[MAX_MAXNUM];
 
 	int mutex_count;
-	
-	struct mutex_table {
-    	struct mutex *mutex[MAX_MAXNUM]; 
-    	//currently held mutexes
-    	
-		};
+
 };

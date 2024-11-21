@@ -1,32 +1,34 @@
 #include "kernel/types.h"
-#include "user/user.h"
+#include "user.h"
 
-// int 
-// main(void) {
-//     printf("Hello, world!\n");
-//     exit(0);
-// }
+#define MAX_PROC 5
 
-
-
-// #include "kernel/types.h"
-// #include "user/user.h"
-
-int
-main(void)
-{
-    int lock_id;
-    lock_id = mutex_create("test_lock");
-    if (lock_id < 0) {
-        printf("Error: Failed to create mutex\n");
+void test_mutex_blocking() {
+    int muxid = mutex_create("test_mutex");
+    if (muxid < 0) {
+        printf("Mutex creation failed\n");
         exit(0);
     }
 
-     mutex_lock(lock_id); 
+    int pid = fork();
+    if (pid == 0) { // Child
+        mutex_lock(muxid);
+        printf("Child acquired mutex\n");
+        sleep(50);
+        mutex_unlock(muxid);
+        printf("Child released mutex\n");
+        exit(0);
+    } else { // Parent
+        sleep(10); // Ensure child locks first
+        mutex_lock(muxid);
+        printf("Parent acquired mutex\n");
+        mutex_unlock(muxid);
+        printf("Parent released mutex\n");
+        wait(0);
+    }
+}
 
-     mutex_unlock(lock_id); 
-
-     mutex_delete(lock_id); 
-
-     exit(0);
+int main() {
+    test_mutex_blocking();
+    exit(0);
 }
