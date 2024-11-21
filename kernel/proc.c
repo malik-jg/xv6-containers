@@ -5,6 +5,23 @@
 #include "spinlock.h"
 #include "proc.h"
 #include "defs.h"
+// --------------------------------------------------------------------------
+// priority map
+#define PRIOMAX 8
+// node for hash map
+typedef struct prioNode {
+    char *key;
+    int priority;
+    struct prioNode *next;
+} prioNode;
+
+// hashmap for priorities
+typedef struct prioMap {
+    prioNode *buckets[PRIOMAX];
+} prioMap;
+
+// --------------------------------------------------------------------------
+
 
 struct cpu cpus[NCPU];
 

@@ -97,6 +97,23 @@ enum procstate
 	RUNNING,
 	ZOMBIE
 };
+// --------------------------------------------------------------------------
+
+// priority map
+#define PRIOMAX 8
+// node for hash map
+struct prioNode {
+    char *key;
+    int priority;
+    struct prioNode *next;
+};
+
+// hashmap for priorities
+struct prioMap {
+    prioNode *buckets[PRIOMAX];
+};
+// --------------------------------------------------------------------------
+
 
 // Per-process state
 struct proc {
