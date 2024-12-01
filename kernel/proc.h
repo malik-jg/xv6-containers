@@ -109,6 +109,14 @@ struct proc {
 	int            xstate; // Exit status to be returned to parent's wait
 	int            pid;    // Process ID
 
+	// For Containers
+	int 		   cid;	  			         // Container ID
+	struct inode   *root;		     		 // Root directory of container
+	int 		   root_set;		 		 // Flag to check if container root has been set
+	int 		   maxprocs;		         // Maximum number of processes in container
+	int 	       maxprocs_set;		     // Flag to check if maxprocs has been set
+	int 		   in_container;	         // Flag to check if process is in container
+	
 	// wait_lock must be held when using this:
 	struct proc *parent; // Parent process
 

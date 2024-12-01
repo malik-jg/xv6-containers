@@ -145,8 +145,8 @@ copy_file(const char *src, const char *dst){
 
 int
 copy_files_to_container(const char *dirname){
-    char *files[] = {COPY_FILES};
-    for(int i = 0; i < NUM_COPY_FILES; i++){
+    char *files[] = {SIMPLE_COPY_FILES};
+    for(int i = 0; i < SIMPLE_NUM_COPY_FILES; i++){
         char src[64];
         char dst[64];
 
@@ -168,7 +168,7 @@ copy_files_to_container(const char *dirname){
     return 0;
 } 
 
-void 
+int 
 cm(const char *filename){
     char *json_content = read_file(filename);
     if(!json_content){
@@ -188,6 +188,14 @@ cm(const char *filename){
     char *max_processes_str = token_values[6];
     int max_processes = atoi(max_processes_str);
 
+    int fd = open(INIT_FILE, O_WRONLY | O_CREATE);
+    if(fd < 0){
+        printf("ERROR: Failed to save init\n");
+        return -1;
+    }
+    write(fd, init, strlen(init));
+    close(fd);
+
     printf("CM creating container with init = %s, root fs = %s, and max num processes = %d\n", init, root_fs, max_processes);
 
     int pid = fork();
@@ -196,70 +204,167 @@ cm(const char *filename){
         int dir_status = directory_exists(root_fs);
         if(dir_status < 0){
             printf("ERROR: Failed to check if directory exists\n");
-            exit(1);
+            return -1;
         }
         int copy_status = copy_files_to_container(root_fs);
         if(copy_status < 0){
             printf("ERROR: Failed to copy files to container\n");
-            exit(1);
+            return -1;
         }
-        int cm_status = cm_create_and_enter();
-        if(cm_status < 0){
-			printf("ERROR: Failed to create and enter container\n");
-			exit(1);
-		}
-        cm_status = cm_setroot(root_fs, strlen(root_fs));
+        int cm_status = cm_setroot(root_fs, strlen(root_fs));
         if(cm_status < 0){
             printf("ERROR: Failed to set root file system\n");
-            exit(1);
+            return -1;
         }
+        //int chdir_status = chdir(root_fs);
+        //if(chdir_status < 0){
+        //    printf("ERROR: Failed to change directory to %s\n", root_fs);
+        //   return -1;
+        //}
         cm_status = cm_maxproc(max_processes);
         if(cm_status < 0){
             printf("ERROR: Failed to set max number of processes\n");
-            exit(1);
+            return -1;
         }
-        printf("SUCCESS");
+        cm_status = cm_create_and_enter();
+        if(cm_status < 0){
+			printf("ERROR: Failed to create and enter container\n");
+			return -1;
+		}
+        char *args[] = {init, NULL};
+        int exec_status = exec(init, args);
+        if(exec_status < 0){
+            printf("ERROR: Failed to exec\n");
+            return -1;
+        }
     }
     wait(0);
-
+    printf("Container created\n");
     //REMEMBER TO FREE LATER, IDK WHEN, FIGURE OUT LATER
     for(int i = 0; i < MAX_TOKENS && token_values[i] != NULL; i++){
         free(token_values[i]);
     }
     free(token_values);
     free(json_content);
+    return 0;
+}
+
+int
+io(const char *container){
+    xv6_size_t length = strlen(container) + 2;
+    char *path = malloc(length);
+    if(path == NULL){
+        printf("ERROR: Memory allocation for path failed\n");
+        return -1;
+    }
+    path[0] = '/';
+    strcpy(path + 1, container);
+    int chdir_status = chdir(path);
+    if(chdir_status < 0){
+        printf("ERROR: Failed to change directory to %s\n", path);
+        free(path);
+        return -1;
+    }   
+    free(path);
+
+    int fd = open(INIT_FILE, O_RDONLY);
+    if(fd < 0){
+        printf("ERROR: Failed to open init file\n");
+        return -1;
+    }
+    char init_process[64];
+    int n = read(fd, init_process, sizeof(init_process) - 1);
+    if(n < 0){
+        printf("ERROR: Failed to read init file\n");
+        close(fd);
+        return -1;
+    }
+    init_process[n] = '\0';
+    close(fd);
+    printf("IO performing I/O operations on container %s with init process %s\n", container, init_process);
     
+    char *args[] = {init_process, NULL};
+    int exec_status = exec(init_process, args);  
+    if(exec_status < 0){
+        printf("ERROR: Failed to exec\n");
+        return -1;
+    }
+    return 0;
 }
 
 int 
 main(int argc, char *argv[]){
     printf("Container Manager starting...\n");
     printf("CM awaiting requests...\n");
+    //Second fork() allows for just "cm" instead of "cm &"
+    int pid = fork();
+    //if(pid == 0){
+        //pid = fork();
+        if(pid == 0){
+            int fd = open(REQUEST_FILE, O_WRONLY | O_CREATE);
+            if(fd < 0){
+                printf("Error: Could not create or access the request file\n");
+                unlink(REQUEST_FILE);
+                exit(1);
+            }
+            close(fd);
 
-    int fd = open(REQUEST_FILE, O_WRONLY | O_CREATE);
-    if(fd < 0){
-        printf("Error: Could not create or access the request file\n");
-        exit(1);
-    }
-    close(fd);
-
-    char buffer[REQUEST_BUFFER_SIZE];
-    for(;;){
-        fd = open(REQUEST_FILE, O_RDONLY);
-        if(fd < 0){
-            printf("Error: Could not open request file.\n");
-            exit(1);
+            char buffer[REQUEST_BUFFER_SIZE];
+            while(1){
+                fd = open(REQUEST_FILE, O_RDONLY);
+                if(fd < 0){
+                    printf("Error: Could not open request file.\n");
+                    unlink(REQUEST_FILE);
+                    exit(1);
+                }
+                int n = read(fd, buffer, sizeof(buffer) - 1);
+                close(fd);
+                if(n > 0){
+                    buffer[n] = '\0';
+                    int cm_status = cm(buffer);
+                    if(cm_status < 0){
+                        printf("ERROR: Failed to create container\n");
+                        unlink(REQUEST_FILE);
+                        break;
+                    }
+                    //should never reach here
+                } 
+                sleep(1);
+            }
         }
-        int n = read(fd, buffer, sizeof(buffer) - 1);
-        close(fd);
-        if(n > 0){
-            buffer[n] = '\0';
-            cm(buffer);
-            unlink(REQUEST_FILE);
-            break;
-        } 
-        sleep(1);
-    }
+        else{
+            int fd = open(CONTAINER_FILE, O_WRONLY | O_CREATE);
+            if(fd < 0){
+                printf("Error: Could not create or access the container file\n");
+                unlink(CONTAINER_FILE);
+                exit(1);
+            }
+            close(fd);
 
+            char buffer[CONTAINER_NAME_SIZE];
+            while(1){
+                fd = open(CONTAINER_FILE, O_RDONLY);
+                if(fd < 0){
+                    printf("Error: Could not open container file.\n");
+                    unlink(CONTAINER_FILE);
+                    exit(1);
+                }
+                int n = read(fd, buffer, sizeof(buffer) - 1);
+                close(fd);
+                if(n > 0){
+                    buffer[n] = '\0';
+                    int io_status = io(buffer);
+                    if(io_status < 0){
+                        printf("ERROR: Failed to perform I/O operations\n");
+                        unlink(CONTAINER_FILE);
+                        break;
+                    }
+                    //should never reach here
+                } 
+                sleep(1);
+            }
+        }
+    //}
+    
     return 0;
 }

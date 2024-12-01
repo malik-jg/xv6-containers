@@ -39,3 +39,5 @@ entry("uptime");
 entry("cm_create_and_enter");
 entry("cm_setroot");
 entry("cm_maxproc");
+entry("procstat");
+entry("getcid");

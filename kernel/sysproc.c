@@ -5,7 +5,11 @@
 #include "memlayout.h"
 #include "spinlock.h"
 #include "proc.h"
+#include "pstat.h"
 
+#include "sleeplock.h"
+#include "fs.h"
+#include "file.h"
 uint64
 sys_exit(void)
 {
@@ -19,6 +23,11 @@ uint64
 sys_getpid(void)
 {
 	return myproc()->pid;
+}
+
+uint64
+sys_getcid(void){
+	return myproc()->cwd -> inum;
 }
 
 uint64
@@ -113,4 +122,24 @@ sys_cm_maxproc(void){
 	argint(0, &maxprocs);
 
 	return cm_maxproc(maxprocs);
+}
+
+/**
+ * Calls procstat() on the kernel copy of the pstat struct. Once the 
+ * process information has been collected, putstruct() is used to copy 
+ * the kernel copy to the user copy of the pstat struct
+ * @return 0 if successful, -1 if some error occurs
+ */
+uint64
+sys_procstat(void){
+	int which;
+    uint64 user_ps;
+    argint(0, &which);
+	argaddr(1, &user_ps);
+	struct pstat kernel_ps;
+    if(procstat(which, &kernel_ps) != 0 ){
+		return -1;
+	}
+    putstruct(user_ps, &kernel_ps, sizeof(kernel_ps));
+    return 0;
 }

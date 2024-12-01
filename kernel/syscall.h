@@ -23,3 +23,5 @@
 #define SYS_cm_create_and_enter 22
 #define SYS_cm_setroot 23
 #define SYS_cm_maxproc 24
+#define SYS_procstat 25
+#define SYS_getcid 26

@@ -143,6 +143,8 @@ UPROGS=\
 	$U/_jsmn_test\
 	$U/_cm\
 	$U/_dockv6\
+	$U/_ps\
+	$U/lvl1test\
 
 JSON_DIR = $C
 JSON_FILES = $(wildcard $(JSON_DIR)/*.json)

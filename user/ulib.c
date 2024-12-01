@@ -2,7 +2,8 @@
 #include "kernel/stat.h"
 #include "kernel/fcntl.h"
 #include "user/user.h"
-
+#include "kernel/pstat.h"
+#include "kernel/param.h"
 //
 // wrapper so that it's OK if main() does not call exit().
 //
@@ -12,6 +13,17 @@ start()
 	extern int main();
 	main();
 	exit(0);
+}
+
+void
+strconcat(char *dest, char *src1, char *src2){
+	while(*src1){
+		*dest++ = *src1++;	
+	}
+	while(*src2){
+        *dest++ = *src2++;
+    }
+    *dest = '\0';
 }
 
 char *
@@ -141,4 +153,24 @@ void *
 memcpy(void *dst, const void *src, uint n)
 {
 	return memmove(dst, src, n);
+}
+
+/**
+ * Gets every process isn't in an UNUSED state and 
+ * prints out information about that process 
+ * in the following format:
+ * pid ppid state name
+ */
+void 
+ps(void){
+    struct pstat ps;
+    for(int i = 0; i < NPROC; i++){
+        if(procstat(i, &ps) == 0){
+            printf("%d ", ps.pid);
+			printf("%d ", ps.ppid);
+			char state[2] = {ps.state, '\0'};
+			printf("%s ", state);
+			printf("%s\n", ps.name);
+        }
+    }
 }

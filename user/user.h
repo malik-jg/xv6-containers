@@ -1,4 +1,5 @@
 struct stat;
+struct pstat;
 
 // system calls
 int   fork(void);
@@ -19,12 +20,14 @@ int   mkdir(const char *);
 int   chdir(const char *);
 int   dup(int);
 int   getpid(void);
+int   getcid(void);
 char *sbrk(int);
 int   sleep(int);
 int   uptime(void);
 int   cm_create_and_enter(void);
 int   cm_setroot(char *, int);
 int   cm_maxproc(int);
+int   procstat(uint64 which, struct pstat *ps);
 
 // ulib.c
 int   stat(const char *, struct stat *);
@@ -41,6 +44,8 @@ void *memset(void *, int, uint);
 int   atoi(const char *);
 int   memcmp(const void *, const void *, uint);
 void *memcpy(void *, const void *, uint);
+void ps(void);
+void strconcat(char *, char *, char *);
 
 // umalloc.c
 void *malloc(uint);

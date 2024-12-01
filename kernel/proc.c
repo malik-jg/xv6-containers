@@ -5,6 +5,11 @@
 #include "spinlock.h"
 #include "proc.h"
 #include "defs.h"
+#include "stat.h"
+#include "sleeplock.h"
+#include "fs.h"
+#include "file.h"
+#include "pstat.h"
 
 struct cpu cpus[NCPU];
 
@@ -123,7 +128,12 @@ allocproc(void)
 found:
 	p->pid   = allocpid();
 	p->state = USED;
-
+	p -> cid = 0;
+	p -> root = 0;
+	p -> root_set = 0;
+	p -> maxprocs = 0;
+	p -> maxprocs_set = 0;
+	p -> in_container = 0;
 	// Allocate a trapframe page.
 	if ((p->trapframe = (struct trapframe *)kalloc()) == 0) {
 		freeproc(p);
@@ -277,6 +287,19 @@ fork(void)
 	// Allocate process.
 	if ((np = allocproc()) == 0) { return -1; }
 
+	if(p -> cid > 0 && p -> maxprocs > 0){
+		struct proc *pp;
+		int numprocs = 0;
+		for(pp = proc; pp < &proc[NPROC]; pp++){
+			if(pp -> cid == p -> cid){
+				numprocs++;
+			}
+		}
+		if(numprocs	>= p -> maxprocs){
+			return -1;
+		}
+	}
+
 	// Copy user memory from parent to child.
 	if (uvmcopy(p->pagetable, np->pagetable, p->sz) < 0) {
 		freeproc(np);
@@ -287,6 +310,19 @@ fork(void)
 
 	// copy saved user registers.
 	*(np->trapframe) = *(p->trapframe);
+
+	np -> cid = p -> cid;
+	np -> root_set = p -> root_set;
+	np -> maxprocs = p -> maxprocs;
+	np -> maxprocs_set = p -> maxprocs_set;
+	np -> in_container = p -> in_container;
+
+	if(p -> root_set){
+		np -> root = idup(p -> root);
+	}
+	else{
+		np -> root = 0;
+	}
 
 	// Cause fork to return 0 in the child.
 	np->trapframe->a0 = 0;
@@ -351,6 +387,14 @@ exit(int status)
 	iput(p->cwd);
 	end_op();
 	p->cwd = 0;
+
+	p -> cid = 0;
+	p -> root = 0;
+	p -> root_set = 0;
+	p -> maxprocs = 0;
+	p -> maxprocs_set = 0;
+	p -> in_container = 0;
+
 
 	acquire(&wait_lock);
 
@@ -669,4 +713,143 @@ procdump(void)
 		printf("%d %s %s", p->pid, state, p->name);
 		printf("\n");
 	}
+}
+
+int nextcid = 1;
+
+int
+cm_create_and_enter(void){
+	struct proc *p = myproc();
+
+	if(p -> in_container){
+		printf("ERROR: Already in container\n");
+		return -1;
+	}
+	
+
+	p -> in_container = 1;
+	p -> cid = nextcid++;
+
+	return 0;
+}
+
+int
+cm_setroot(char *path, int path_length){
+	struct proc *p = myproc();
+	
+	if(p -> root_set){
+		printf("ERROR: Root already set\n");
+		return -1;
+	}
+	
+	if(path_length >= MAXPATH){
+		printf("ERROR: Path too long\n");
+		return -1;
+	}
+
+	if(path[0] != '/'){
+		printf("ERROR: Path must start with /\n");
+		return -1;
+	}
+	begin_op();
+	struct inode *ip = namei(path);
+	if(ip == 0){
+		end_op();
+		printf("ERROR: Failed to namei\n");
+		return -1;
+	}
+	ilock(ip);
+	if(ip -> type != T_DIR){
+		iunlockput(ip);
+		end_op();
+		printf("ERROR: Not a directory\n");
+		return -1;
+	}
+	iunlock(ip);
+	iput(p->cwd);  
+	end_op();
+	acquire(&p -> lock);
+	p -> cwd = ip;
+	p -> root = ip;
+	p -> root_set = 1;
+	release(&p -> lock);
+	return 0;
+}
+
+int
+cm_maxproc(int maxprocs){
+	struct proc *p = myproc();
+	struct proc *pp;
+
+	if(maxprocs < 1){
+		printf("ERROR: Maxprocs must be greater than 1\n");
+		return -1;
+	}
+
+	for(pp = p; pp != 0; pp = pp -> parent){
+		if(pp -> maxprocs_set == 1){
+			return -1;
+		}
+	}
+	
+	p -> maxprocs = maxprocs;
+	p -> maxprocs_set = 1;
+	return 0;
+}
+/**
+ * Goes through the process table and looks for the one that
+ * matches the 'which' argument. Copies its information into the kernel 
+ * copy of the pstat struct
+ * @param which, which of the active processes in the system the caller wants to get information about
+ * @param ps, the kernel copy of pstat struct
+ * @return 0 if successful, -1 if some error, 1 every process in the system has been iterated through
+ */
+int 
+procstat(uint64 which, struct pstat *ps){
+	if(which < 0 || which > NPROC){
+		return -1;
+	}
+	if(!ps){
+		return -1;
+	}
+	int process_count = 0;
+	struct proc *p;
+	for(p = proc; p < &proc[NPROC]; p++){
+		acquire(&p -> lock);
+		if(p -> state != UNUSED){
+			if(process_count == which){
+				ps -> pid = p -> pid;
+				safestrcpy(ps -> name, p -> name, sizeof(ps -> name));
+				acquire(&wait_lock);
+				if(p -> parent){
+					ps -> ppid = p -> parent -> pid;
+				}
+				else{
+					ps -> ppid = p -> pid;
+				}
+				release(&wait_lock);
+				if(p -> state == USED){
+					ps -> state = 'U';
+				}
+				else if(p -> state == SLEEPING){
+					ps -> state = 'S';
+				}
+				else if(p -> state == RUNNING){
+					ps -> state = 'N';
+				}
+				else if(p -> state == RUNNABLE){
+					ps -> state = 'R';
+				}
+				else if(p -> state == ZOMBIE){
+					ps -> state = 'Z';
+				}
+				printf("cwd: %d | cid: %d | maxprocs: %d | root_set: %d | maxprocs_set %d | in_container: %d | ", p -> cwd -> inum, p -> cid, p -> maxprocs, p -> root_set, p -> maxprocs_set, p -> in_container);
+				release(&p -> lock);
+				return 0;
+			}
+			process_count++;
+		}
+		release(&p -> lock);
+	}
+	return 1;
 }
