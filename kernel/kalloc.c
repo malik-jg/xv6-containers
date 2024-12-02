@@ -48,8 +48,8 @@ kfree(void *pa)
 	struct run *r;
 
 	if (((uint64)pa % PGSIZE) != 0 || (char *)pa < end || (uint64)pa >= PHYSTOP) {
-		if ((uint64)pa >= PHYSTOP) {
-			printf("FLAG %ld, %ld\n", (uint64)pa, PHYSTOP);
+		if ((char *)pa < end) {
+			printf("FLAG %ld, %ld, %ld\n", (uint64)pa, (uint64)end, (uint64)end - (uint64)pa);
 		}
 		panic("kfree");
 	}

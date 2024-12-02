@@ -14,7 +14,15 @@ extern char etext[]; // kernel.ld sets this to end of kernel code.
 
 extern char trampoline[]; // trampoline.S
 
+struct shmem {
+	char *name;
+	uint64 physical_address;
+	int reference_count;
+};
+
 struct shmem shared_memory [SHM_MAXNUM];
+
+
 
 // Make a direct-map page table for the kernel.
 pagetable_t
@@ -430,7 +438,7 @@ char *shm_get(char *name) {
 				if (strncmp(name, shared_memory[i].name, len)) {
 					shared_memory[i].reference_count++;
 
-					return (char*) map_va(shared_memory[i], 1);
+					return (char *)(map_va(shared_memory[i].physical_address, 1));
 				}
 			}	
 		}
@@ -444,16 +452,14 @@ char *shm_get(char *name) {
 			//printf("If statement 2\n");
 			shared_memory[i].name = name;
 			//printf("After if statement 2\n");
-			shared_memory[i].page = kalloc();
+			shared_memory[i].physical_address = (uint64)((kalloc()));
+			printf("PHYS ADDR: %ld\n", shared_memory[i].physical_address);
+			//one process uses this
 			shared_memory[i].reference_count = 1;
-			
-			return (char*)map_va(shared_memory[i], 1);
-			
+
+			return (char *)(map_va(shared_memory[i].physical_address, 1));
 		}
 	}
-	
-	
-
 	return "";
 }
 

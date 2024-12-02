@@ -15,8 +15,3 @@
 
 #define SHM_MAXNUM 20
 
-struct shmem {
-	char *name;
-	void *page;
-	int reference_count;
-};

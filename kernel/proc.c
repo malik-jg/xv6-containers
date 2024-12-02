@@ -676,15 +676,18 @@ procdump(void)
 	}
 }
 
-uint64 map_va(struct shmem shared, int flag) {
-	struct proc * process = myproc();
-	//printf()
-	printf("PAGE LOCATION: %ld\n", (uint64)&(shared.page));
-
-	mappages(process->pagetable, process->sz, PGSIZE, (uint64)&(shared.page), PTE_R | PTE_W);
-	//pte_t* mapping = walk(process->pagetable, (uint64)(shared.page), flag);	
-	//printf("mapping: %ld\n", PTE2PA(*mapping));
-	process->sz += 4096;
+char* map_va(uint64 memory, int flag) {
+	//physical address, debugging
+	printf("PAGE LOCATION: %ld\n", memory);
+	//open space to put shmem
+	uint64 virtual = (uint64)(PGROUNDUP(myproc()->sz));
+	printf("ADDR IN KERNEL: %ld\n", virtual);
+	//mapping pages
+	if (mappages(myproc()->pagetable, virtual, PGSIZE, memory, PTE_W | PTE_R | PTE_U) > 0) {
+		printf("FAILURE IN MAPPAGES\n");
+	} 
+	//account for new size
+	myproc()->sz = (uint64)virtual + PGSIZE;
 	
-	return process->sz - PGSIZE;
+	return (char *)virtual;
 }

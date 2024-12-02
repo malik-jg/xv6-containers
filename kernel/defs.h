@@ -108,7 +108,7 @@ int          either_copyout(int user_dst, uint64 dst, void *src, uint64 len);
 int          either_copyin(void *dst, int user_src, uint64 src, uint64 len);
 void         procdump(void);
 
-uint64 map_va(struct shmem, int);
+char* map_va(uint64, int);
 
 char *shm_get(char *name);
 int shm_rem(char *name);

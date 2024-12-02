@@ -8,13 +8,17 @@ int main (void) {
         sleep(2);
         char* a = (char* )shm_get("hello");
         printf("CHILD %ld\n", (uint64)a);
+
+        printf("READING FROM CHILD: %d\n", a[0]);
+
         //printf("%d\n", a[0]);
 
     } else {
-        uint64* mem = (uint64*) shm_get("hello");
-        char * text = "hello\0";
+        char* mem = (char*) shm_get("hello");
+        const char * text = "hello";
         printf("PARENT ADDR: %ld\n",(uint64) mem);
-        //shm_get("hello2");        
+        strcpy(mem, text);
+        shm_get("hello2");        
         wait(&pid);
     }
 }
