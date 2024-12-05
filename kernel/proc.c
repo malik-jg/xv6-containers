@@ -676,18 +676,42 @@ procdump(void)
 	}
 }
 
-char* map_va(uint64 memory, int flag) {
-	//physical address, debugging
-	printf("PAGE LOCATION: %ld\n", memory);
+char* map_va(uint64 memory, char* name) {
 	//open space to put shmem
 	uint64 virtual = (uint64)(PGROUNDUP(myproc()->sz));
-	printf("ADDR IN KERNEL: %ld\n", virtual);
 	//mapping pages
 	if (mappages(myproc()->pagetable, virtual, PGSIZE, memory, PTE_W | PTE_R | PTE_U) > 0) {
 		printf("FAILURE IN MAPPAGES\n");
-	} 
+	}
+	myproc()->shmems[myproc()->shmem_count].va = virtual;
+	myproc()->shmems[myproc()->shmem_count].name = name;
+	myproc()->shmem_count++;
 	//account for new size
 	myproc()->sz = (uint64)virtual + PGSIZE;
-	
 	return (char *)virtual;
+}
+
+void proc_free(char* name) {
+	int len = strlen(name);
+	struct proc * process = myproc();
+
+	//similar process as before to track down the mem in the proc
+	int flag = 0;
+	for (int i = 0; i < process->shmem_count; i++) {
+		int len2 = strlen(process->shmems[i].name);
+		if (len == len2) {
+			if (strncmp(name, process->shmems[i].name, len) == 0) {
+				flag = 1;
+				//printf("removing\n");
+				process->shmem_count--;
+				uvmunmap(myproc()->pagetable, process->shmems[i].va, 1, 0);
+				myproc()->sz = myproc()->sz - PGSIZE;
+			}
+			//if we have to remove one, we move all of the next ones a spot to the left
+			if (flag && i != SHM_MAXNUM - 1) {
+				//move each entry to the right one
+				process->shmems[i] = process->shmems[i + 1];
+			}
+		}
+	}
 }

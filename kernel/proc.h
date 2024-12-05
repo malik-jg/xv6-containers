@@ -86,6 +86,11 @@ struct cpu {
 	struct trapframe saved_pagetable_proc_tf;
 };
 
+struct proc_shmem {
+	uint64 va;
+	char* name;
+};
+
 extern struct cpu cpus[NCPU];
 
 enum procstate
@@ -100,7 +105,6 @@ enum procstate
 
 // Per-process state
 struct proc {
-	#define SHM_MAXNUM 20
 	struct spinlock lock;
 
 	// p->lock must be held when using these:
@@ -132,5 +136,8 @@ struct proc {
 	struct context    context;       // swtch() here to run process
 	struct file      *ofile[NOFILE]; // Open files
 	struct inode     *cwd;           // Current directory
-	char              name[16];      // Process name (debugging)
+	char             name[16];      // Process name (debugging)
+
+	struct proc_shmem shmems[SHM_MAXNUM];
+	int 			 shmem_count;
 };

@@ -2,23 +2,34 @@
 #include "user/user.h"
 
 int main (void) {
+    printf("\nTEST ONE: CHILD AND PARENT SIMPLE SHMEM\n");
     int pid = fork();
 
+    const char * text = "message";
+    
     if (pid == 0) {
         sleep(2);
-        char* a = (char* )shm_get("hello");
-        printf("CHILD %ld\n", (uint64)a);
+        char* a = (char*) shm_get("hello");
+        
+        char* b = a;
 
-        printf("READING FROM CHILD: %d\n", a[0]);
-
-        //printf("%d\n", a[0]);
-
+        printf("\tCHILD READING MESSAGE: \"%s\"\n", b);
+        if (strcmp(b, text) == 0) {
+            printf("SUCCESS! CHILD CAN ACCESS SAME SHARED MEM AS PARENT!\n");
+        }
+        shm_rem("hello");
+        exit(0);
+        
     } else {
         char* mem = (char*) shm_get("hello");
-        const char * text = "hello";
-        printf("PARENT ADDR: %ld\n",(uint64) mem);
+        
         strcpy(mem, text);
-        shm_get("hello2");        
-        wait(&pid);
+        printf("\tPARENT SENDING MESSAGE: \"%s\"\n", text);
+        
+        
+        wait(&pid);  
+        shm_rem("hello");
     }
+    printf("TEST ONE COMPLETE\n\n");
+    exit(0);
 }

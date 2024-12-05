@@ -430,15 +430,13 @@ char *shm_get(char *name) {
 	int len = strlen(name);
 
 	for (int i = 0; i < SHM_MAXNUM; i++) {
-		//printf("First loop: %d\n", i);
 		if (shared_memory[i].reference_count > 0) {
-			//printf("If statement 1\n");
 			int len2 = strlen(shared_memory[i].name);
 			if (len == len2) {
-				if (strncmp(name, shared_memory[i].name, len)) {
+				if (strncmp(name, shared_memory[i].name, len) == 0) {
+					//one more process references
 					shared_memory[i].reference_count++;
-
-					return (char *)(map_va(shared_memory[i].physical_address, 1));
+					return (char *)(map_va(shared_memory[i].physical_address, name));
 				}
 			}	
 		}
@@ -446,23 +444,39 @@ char *shm_get(char *name) {
 	//check for open space
 	for (int i = 0; i < SHM_MAXNUM; i++) {
 		//check if unused
-		//printf("Second loop: %d\n", i);
 		if (shared_memory[i].reference_count == 0) {
-			//unusued
-			//printf("If statement 2\n");
 			shared_memory[i].name = name;
-			//printf("After if statement 2\n");
 			shared_memory[i].physical_address = (uint64)((kalloc()));
-			printf("PHYS ADDR: %ld\n", shared_memory[i].physical_address);
 			//one process uses this
 			shared_memory[i].reference_count = 1;
 
-			return (char *)(map_va(shared_memory[i].physical_address, 1));
+			return (char *)(map_va(shared_memory[i].physical_address, name));
 		}
 	}
 	return "";
 }
 
 int shm_rem(char *name) {
-	return 0;
+	int len = strlen(name);
+	//printf("SHM_REM: %s\n", name);
+	
+	for (int i = 0; i < SHM_MAXNUM; i++) {
+		int len2 = strlen(shared_memory[i].name);
+		if (len == len2) {
+			if (strncmp(name, shared_memory[i].name, len) == 0) {
+				//should remove the reference
+				shared_memory[i].reference_count--;
+				proc_free(name);
+
+				if (shared_memory[i].reference_count == 0) {
+					//printf("freeing page\n");
+					kfree((void*)shared_memory[i].physical_address);
+				}
+				//if shmems are to be moved
+				
+				return 0;
+			}	
+		}
+	}
+	return -1;
 }
