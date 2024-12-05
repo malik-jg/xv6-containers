@@ -303,7 +303,7 @@ int fork(void) {
 
     pid = np->pid;
 
-    // Copy mutex table and increment references
+    //Copy mutex table and increment references
     for (int i = 0; i < p->mutex_count; i++) {
        np->mutex_table[i] = p->mutex_table[i];
     	np->mutex_table[i]->referenced_by++;
@@ -718,89 +718,93 @@ int mutex_create(char *name) {
     return -1; //no avialable,c an't create
 }
 
+void mutex_delete(int muxid) {
+    struct proc *process = myproc();
+    int flag = -1;
 
-void 
-mutex_delete(int muxid){
+    for (int i = 0; i < process->mutex_count; i++) {
+        if (process->mutex_table[i]->mutex_id == muxid) {
+            process->mutex_table[i]->referenced_by--;
+            flag = i;
+        }
+        if (flag != -1 && i < process->mutex_count - 1) {
+            process->mutex_table[i] = process->mutex_table[i + 1];
+        }
+    }
 
-	struct proc * process = myproc();
+    if (flag != -1) {
+        process->mutex_count--;
+    }
 
-	int flag = -1;
-
-	for (int i = 0; i < process->mutex_count; i++) {
-		if (process->mutex_table[i]->mutex_id == muxid) {
-			//the lock needed to be deleted, one fewer reference
-			process->mutex_table[i]->referenced_by--;
-			flag = i;
-		}
-		//move to the left afterwards
-		if (flag != -1 && i < process->mutex_count - 1) {
-			//move to the left
-			process->mutex_table[i] = process->mutex_table[i+1];
-			process->mutex_table[i+1]->status = 0;
-		}
-		//one fewer lock
-		process->mutex_count--;
-
-	}
-	//delete lock if nothing holds it
-	if (all_locks[muxid].referenced_by == 0) {
-		all_locks[muxid].status = 0;
-	}
+    if (all_locks[muxid].referenced_by == 0) {
+        all_locks[muxid].status = 0;
+    }
 }
 
 
 
-void mutex_lock(int muxid) {
+void
+mutex_lock(int muxid) {
     struct proc *process = myproc();
     struct mutex *cur_mutex = &all_locks[muxid];
-
-    //Validate if the process has the mutex in its table
+	//printf("750 \n");
     int found = 0;
     for (int i = 0; i < process->mutex_count; i++) {
         if (process->mutex_table[i]->mutex_id == muxid) {
+			//printf("754 \n");
             found = 1;
             break;
         }
     }
+	//printf("759 \n");
     if (!found) {
         panic("Invalid mutex ID");
     }
+	//printf("763 \n");
     acquiresleep(&cur_mutex->slock);
 
-    while (cur_mutex->status == 1) {
-        sleep(&cur_mutex->slock.lk, &cur_mutex->slock.lk); //Use the sleeplock's spinlock
+    while (cur_mutex->status == 1 && cur_mutex->owner_id == process->pid) {
+		//printf("767 \n");
+        sleep(&cur_mutex->slock, &cur_mutex->slock.lk); 
     }
-
-    //Lock the mutex
+	//printf("771 \n");
     cur_mutex->status = 1;
     cur_mutex->owner_id = process->pid;
-
-
+	//printf("774 \n");
     releasesleep(&cur_mutex->slock);
 }
+
 
 void mutex_unlock(int muxid) {
     struct proc *process = myproc();
     struct mutex *cur_mutex = &all_locks[muxid];
 
 
-    //Ensure only the owner can unlock
+	if (muxid < 0 || muxid >= MAX_MAXNUM) {
+        panic("Invalid mutex ID");
+    }
+
+
     if (cur_mutex->owner_id != process->pid) {
+		exit(0);
         panic("Mutex unlock by non-owner");
     }
 
     acquiresleep(&cur_mutex->slock);
 
-    //Unlock the mutex and reset the owner
+    if (cur_mutex->status == 0) {
+        releasesleep(&cur_mutex->slock);
+        panic("Unlocking an already unlocked mutex");
+    }
+
     cur_mutex->status = 0;
     cur_mutex->owner_id = -1;
 
-
-    //Wake up all processes waiting for the mutex
-    wakeup(&cur_mutex->slock.lk);
+    wakeup(&cur_mutex->slock);
 
     releasesleep(&cur_mutex->slock);
 }
+
 
 
 

@@ -144,6 +144,7 @@ UPROGS=\
 	$U/_test_lvl0\
 	$U/_test_lvl1\
 	$U/_test_lvl2\
+	#$U/_test_lvl3\
 
 
 fs.img: mkfs/mkfs README $(UPROGS)
