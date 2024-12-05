@@ -62,6 +62,12 @@ exec(char *path, char **argv)
 	ip = 0;
 
 	p            = myproc();
+
+	//SHMEM STUFF
+	for (int i = 0; i < p->shmem_count; p++) {
+		shm_rem(p->shmems[i].name);
+	}
+	//END SHMEM STUFF
 	uint64 oldsz = p->sz;
 
 	// Allocate some pages at the next page boundary.

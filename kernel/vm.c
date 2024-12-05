@@ -469,8 +469,9 @@ int shm_rem(char *name) {
 				proc_free(name);
 
 				if (shared_memory[i].reference_count == 0) {
-					//printf("freeing page\n");
 					kfree((void*)shared_memory[i].physical_address);
+					//helps with testing
+					return 1;
 				}
 				//if shmems are to be moved
 				
@@ -479,4 +480,17 @@ int shm_rem(char *name) {
 		}
 	}
 	return -1;
+}
+
+void shmem_fork(char * name) {
+	int len = strlen(name);
+	for (int i = 0; i < SHM_MAXNUM; i++) {
+		if (shared_memory[i].reference_count > 0) {
+			int len2 = strlen(shared_memory[i].name);
+			if (len == len2 && strncmp(name, shared_memory[i].name, len) == 0) {
+				shared_memory[i].reference_count++;
+				return;
+			}
+		}
+	}
 }

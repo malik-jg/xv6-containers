@@ -106,7 +106,7 @@ uint64 sys_shm_rem(void) {
 	char* name = "";
 	argstr(0, name, 16);
 
-	shm_rem(name);
+	return shm_rem(name);
 
-	return 0;
+	
 }

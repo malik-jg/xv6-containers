@@ -110,6 +110,7 @@ void         procdump(void);
 
 char* map_va(uint64, char*);
 void  proc_free(char*);
+void shmem_fork(char *);
 
 char *shm_get(char *name);
 int shm_rem(char *name);

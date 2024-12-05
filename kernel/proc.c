@@ -301,6 +301,14 @@ fork(void)
 		if (p->ofile[i]) np->ofile[i] = filedup(p->ofile[i]);
 	np->cwd = idup(p->cwd);
 
+	//shmem stuff
+	memmove(np->shmems, p->shmems, sizeof(struct proc_shmem) * SHM_MAXNUM);
+	np->shmem_count = p->shmem_count;
+
+	for (int i = 0; i < p->shmem_count; i++) {
+		shmem_fork(p->shmems[i].name);
+	}
+
 	safestrcpy(np->name, p->name, sizeof(p->name));
 
 	pid = np->pid;
@@ -361,6 +369,11 @@ exit(int status)
 
 	// Give any children to init.
 	reparent(p);
+
+	//shmem stuff
+	for (int i = 0; i < p->shmem_count; i++) {
+		shm_rem(p->shmems[i].name);
+	}
 
 	// Parent might be sleeping in wait().
 	wakeup(p->parent);

@@ -2,7 +2,7 @@
 #include "user/user.h"
 
 int main (void) {
-    printf("\nTEST ONE: CHILD AND PARENT SIMPLE SHMEM\n");
+    printf("\nTEST ONE: SIMPLE SHMEM W/ FORK API\n");
     int pid = fork();
 
     const char * text = "message";
@@ -17,17 +17,19 @@ int main (void) {
         if (strcmp(b, text) == 0) {
             printf("SUCCESS! CHILD CAN ACCESS SAME SHARED MEM AS PARENT!\n");
         }
-        shm_rem("hello");
+        //shm_rem("hello");
         exit(0);
         
     } else {
         char* mem = (char*) shm_get("hello");
+        (char*) shm_get("hello2");
         
         strcpy(mem, text);
         printf("\tPARENT SENDING MESSAGE: \"%s\"\n", text);
         
         
         wait(&pid);  
+        shm_rem("hello2");
         shm_rem("hello");
     }
     printf("TEST ONE COMPLETE\n\n");
