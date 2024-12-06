@@ -281,7 +281,6 @@ fork(void)
 
 	// Allocate process.
 	if ((np = allocproc()) == 0) { return -1; }
-
 	// Copy user memory from parent to child.
 	if (uvmcopy(p->pagetable, np->pagetable, p->sz) < 0) {
 		freeproc(np);
@@ -306,8 +305,13 @@ fork(void)
 	np->shmem_count = p->shmem_count;
 	np->shmem_alloc = p->shmem_alloc;
 
-	for (int i = 0; i < p->shmem_count; i++) {
-		shmem_fork(p->shmems[i].name);
+	for (int i = 0; i < p->shmem_alloc; i++) {
+		if (p->shmems[i].status == 1) {
+			shmem_fork(p->shmems[i].name);
+			uvmunmap(np->pagetable, p->shmems[i].va, 1, 0);
+			mappages(np->pagetable, p->shmems[i].va, PGSIZE, p->shmems[i].pa, PTE_W | PTE_R | PTE_U);
+			np->shmems[i].pa = p->shmems[i].pa;
+		}
 	}
 
 	safestrcpy(np->name, p->name, sizeof(p->name));
@@ -372,13 +376,11 @@ exit(int status)
 	reparent(p);
 
 	//shmem stuff
-	int max = p->shmem_count;
+	int max = p->shmem_alloc;
 	for (int i = 0; i < max; i++) {
 		//printf("i: %d EXIT %s\n", i, p->shmems[i].name);
 		shm_rem(p->shmems[i].name);
 	}
-	printf("EXIT WITH: %d, %d", p->shmem_count, p->shmem_alloc);
-
 	// Parent might be sleeping in wait().
 	wakeup(p->parent);
 
@@ -709,8 +711,6 @@ char* map_va(uint64 memory, char* name) {
 			return (char *)process->shmems[i].va;
 		}
 	}
-	
-	
 	//open new to put shmem
 	uint64 virtual = (uint64)(PGROUNDUP(myproc()->sz));
 	//mapping pages
@@ -724,9 +724,6 @@ char* map_va(uint64 memory, char* name) {
 	strncpy(myproc()->shmems[myproc()->shmem_count].name, name, strlen(name));
 	myproc()->shmem_count++;
 	myproc()->shmem_alloc++;
-	printf("SHMEM ALLOC AFTER CREATE: %d\n", myproc()->shmem_alloc);
-	
-
 	
 	//account for new size
 	myproc()->sz = (uint64)virtual + PGSIZE;
@@ -736,28 +733,24 @@ char* map_va(uint64 memory, char* name) {
 void proc_free(char* name) {
 	int len = strlen(name);
 	struct proc * process = myproc();
-	printf("PROC_FREE: %s\n", name);
 	//similar process as before to track down the mem in the proc
 	int flag = 0;
 	for (int i = 0; i < process->shmem_alloc; i++) {
 		int len2 = strlen(process->shmems[i].name);
 		if (len == len2) {
-			if (flag == 0 && strncmp(name, process->shmems[i].name, len) == 0) {
-				
-				
+			if (flag == 0 && strncmp(name, process->shmems[i].name, len) == 0) {		
 				process->shmems[i].status = 0;
-
-				printf("SHMEM_ALLOC %d\n", process->shmem_alloc);
 
 				//if its not the last
 				if (i != process->shmem_alloc - 1) {
-					printf("HERE, SHMEM_ALLOC : %d\n", process->shmem_alloc);
 					uvmunmap(myproc()->pagetable, process->shmems[i].va, 1, 0);
 					process->shmem_count--;
+					void* temp_mem = kalloc();
+					process->shmems[i].pa = (uint64) temp_mem;
 					memset(process->shmems[i].name, 0, 16);
 					//should map junk for now
 					
-					mappages(myproc()->pagetable, process->shmems[i].va, PGSIZE, 0, PTE_W | PTE_R | PTE_U);
+					mappages(myproc()->pagetable, process->shmems[i].va, PGSIZE, (uint64) temp_mem, PTE_W | PTE_R | PTE_U);
 
 				} else {
 					flag = 1;
@@ -772,11 +765,11 @@ void proc_free(char* name) {
 					for understanding.
 					*/
 					for (int j = i - 1; j >= 0; j--) {
+						//unmap all empty pages before it
 						if (process->shmems[j].status == 0) {
-							printf("FREEING: %s\n", process->shmems[j].name);
 							uvmunmap(myproc()->pagetable, process->shmems[j].va, 1, 0);			
 							process->shmem_alloc--;
-							printf("SHMEM ALLOC: %d\n", process->shmem_alloc);
+							kfree((void*) process->shmems[j].pa);
 							myproc()->sz = myproc()->sz - PGSIZE;
 						} else {
 							break;
@@ -784,9 +777,6 @@ void proc_free(char* name) {
 					}
 				}
 
-				//unmap all empty pages before it
-
-				 
 				
 				
 			}

@@ -1,6 +1,8 @@
 #include "kernel/types.h"
 #include "user/user.h"
 
+#include "kernel/param.h"
+
 int main (void) {
     printf("\nTEST TWO: CHILD AND PARENT INTERACTIONS\n");
     const char * text = "test 2 message";
@@ -40,9 +42,6 @@ int main (void) {
         strcpy(tester2, part2);
         strcpy(tester3, part3);
 
-        
-
-        printf("GOING TO EXIT\n");
         exit(0);
 
     } else {
@@ -51,18 +50,36 @@ int main (void) {
         char* tester2 = (char*) shm_get("2tester");
         char* tester3 = (char*) shm_get("3tester");
 
+        if (strcmp(tester1, part1) != 0 && strcmp(tester2, part2) != 0 && strcmp(tester3, part3) != 0) {
+            printf("\tMEMORY BLANK BEFORE CHILD WRITE!\n");
+        }
+        else {
+            printf("\tFAILURE! MEMORY POPULATED BEFORE CHILD WRITE!\n");
+        }
+
         wait(&pid2);
 
-        printf("1: %s\n", tester1);
-        printf("2: %s\n", tester2);
-        printf("3: %s\n", tester3);
 
         if (strcmp(tester1, part1) == 0 && strcmp(tester2, part2) == 0 && strcmp(tester3, part3) == 0) {
             printf("SUCCESS! WORKS FOR THREE MESSAGES\n");
+        } else {
+            printf("FAILURE! DOES NOT WORK FOR THREE MESSAGES\n");
         }
     }
 
 
+    /*
+    TODO: TEST THE MAX NUM
+
+    char* array[SHM_MAXNUM];
+
+    for (uint64 i = 0; i < SHM_MAXNUM - 1; i++) {
+        //create all but one process
+        array[i] = (char*)shm_get((char *)i);
+    }
+
+    strcpy(array[0])
+    */
 
     printf("TEST TWO COMPLETE\n\n");
     exit(0);

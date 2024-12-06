@@ -458,16 +458,16 @@ char *shm_get(char *name) {
 
 int shm_rem(char *name) {
 	int len = strlen(name);
-	//printf("SHM_REM: %s\n", name);
 	
 	for (int i = 0; i < SHM_MAXNUM; i++) {
 		int len2 = strlen(shared_memory[i].name);
-		//printf("LEN: %d, LEN2: %d\n", len, len2);
 		if (len == len2) {
 			if (strncmp(name, shared_memory[i].name, len) == 0) {
 				//should remove the reference
 				shared_memory[i].reference_count--;
+
 				proc_free(name);
+
 
 				if (shared_memory[i].reference_count == 0) {
 					kfree((void*)shared_memory[i].physical_address);
@@ -490,6 +490,7 @@ void shmem_fork(char * name) {
 		if (shared_memory[i].reference_count > 0) {
 			int len2 = strlen(shared_memory[i].name);
 			if (len == len2 && strncmp(name, shared_memory[i].name, len) == 0) {
+				
 				shared_memory[i].reference_count++;
 				return;
 			}
