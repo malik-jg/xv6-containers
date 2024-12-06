@@ -88,7 +88,9 @@ struct cpu {
 
 struct proc_shmem {
 	uint64 va;
-	char* name;
+	uint64 pa;
+	char name[16];
+	int status;
 };
 
 extern struct cpu cpus[NCPU];
@@ -140,4 +142,5 @@ struct proc {
 
 	struct proc_shmem shmems[SHM_MAXNUM];
 	int 			 shmem_count;
+	int				 shmem_alloc;
 };

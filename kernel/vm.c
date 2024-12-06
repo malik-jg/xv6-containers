@@ -15,7 +15,7 @@ extern char etext[]; // kernel.ld sets this to end of kernel code.
 extern char trampoline[]; // trampoline.S
 
 struct shmem {
-	char *name;
+	char name[16];
 	uint64 physical_address;
 	int reference_count;
 };
@@ -445,7 +445,7 @@ char *shm_get(char *name) {
 	for (int i = 0; i < SHM_MAXNUM; i++) {
 		//check if unused
 		if (shared_memory[i].reference_count == 0) {
-			shared_memory[i].name = name;
+			strncpy(shared_memory[i].name, name, strlen(name));
 			shared_memory[i].physical_address = (uint64)((kalloc()));
 			//one process uses this
 			shared_memory[i].reference_count = 1;
@@ -462,6 +462,7 @@ int shm_rem(char *name) {
 	
 	for (int i = 0; i < SHM_MAXNUM; i++) {
 		int len2 = strlen(shared_memory[i].name);
+		//printf("LEN: %d, LEN2: %d\n", len, len2);
 		if (len == len2) {
 			if (strncmp(name, shared_memory[i].name, len) == 0) {
 				//should remove the reference
@@ -470,6 +471,7 @@ int shm_rem(char *name) {
 
 				if (shared_memory[i].reference_count == 0) {
 					kfree((void*)shared_memory[i].physical_address);
+					memset(shared_memory[i].name, 0, 16);
 					//helps with testing
 					return 1;
 				}
