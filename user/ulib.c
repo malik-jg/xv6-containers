@@ -131,3 +131,7 @@ memcpy(void *dst, const void *src, uint n)
 {
 	return memmove(dst, src, n);
 }
+
+char * shm_get(char *name) {
+	return (char *) user_shm_get(name);
+}

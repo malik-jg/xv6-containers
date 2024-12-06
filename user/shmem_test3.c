@@ -44,9 +44,9 @@ int main (void) {
         printf("SUCCESS! SHM_REM ERROR WHEN UNDECLARED MEMORY!\n");
     }
 
-    char * mem1 = (char*) shm_get("memory1");
+    char * mem1 =  shm_get("memory1");
     shm_get("memory2");
-    char * mem3 = (char*) shm_get("memory3");
+    char * mem3 =  shm_get("memory3");
 
     const char * test3 = "please read this";
 

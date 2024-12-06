@@ -36,5 +36,5 @@ entry("getpid");
 entry("sbrk");
 entry("sleep");
 entry("uptime");
-entry("shm_get");
+entry("user_shm_get");
 entry("shm_rem");

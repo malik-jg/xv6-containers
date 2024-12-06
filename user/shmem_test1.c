@@ -9,7 +9,7 @@ int main (void) {
     
     if (pid == 0) {
         sleep(2);
-        char* a = (char*) shm_get("hello");
+        char* a =  shm_get("hello");
         
         char* b = a;
 
@@ -21,8 +21,8 @@ int main (void) {
         exit(0);
         
     } else {
-        char* mem = (char*) shm_get("hello");
-        (char*) shm_get("hello2");
+        char* mem =  shm_get("hello");
+         shm_get("hello2");
         
         strcpy(mem, text);
         printf("\tPARENT SENDING MESSAGE: \"%s\"\n", text);

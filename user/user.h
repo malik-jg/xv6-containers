@@ -38,7 +38,9 @@ int   atoi(const char *);
 int   memcmp(const void *, const void *, uint);
 void *memcpy(void *, const void *, uint);
 
-uint64 *shm_get(char *name);
+uint64 *user_shm_get(char *name);
+char * shm_get(char *name);
+
 int shm_rem(char *name);
 
 // umalloc.c

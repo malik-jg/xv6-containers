@@ -6,7 +6,7 @@
 int main (void) {
     printf("\nTEST TWO: CHILD AND PARENT INTERACTIONS\n");
     const char * text = "test 2 message";
-    char * shmem = (char *) shm_get("shmem1");
+    char * shmem =  shm_get("shmem1");
 
     strcpy(shmem, text);
     
@@ -34,9 +34,9 @@ int main (void) {
 
     if (pid2 == 0) {
         sleep(2);
-        char* tester1 = (char*) shm_get("1tester");
-        char* tester2 = (char*) shm_get("2tester");
-        char* tester3 = (char*) shm_get("3tester");
+        char* tester1 =  shm_get("1tester");
+        char* tester2 =  shm_get("2tester");
+        char* tester3 =  shm_get("3tester");
 
         strcpy(tester1, part1);
         strcpy(tester2, part2);
@@ -46,9 +46,9 @@ int main (void) {
 
     } else {
         
-        char* tester1 = (char*) shm_get("1tester");
-        char* tester2 = (char*) shm_get("2tester");
-        char* tester3 = (char*) shm_get("3tester");
+        char* tester1 =  shm_get("1tester");
+        char* tester2 =  shm_get("2tester");
+        char* tester3 =  shm_get("3tester");
 
         if (strcmp(tester1, part1) != 0 && strcmp(tester2, part2) != 0 && strcmp(tester3, part3) != 0) {
             printf("\tMEMORY BLANK BEFORE CHILD WRITE!\n");
@@ -75,7 +75,7 @@ int main (void) {
 
     for (uint64 i = 0; i < SHM_MAXNUM - 1; i++) {
         //create all but one process
-        array[i] = (char*)shm_get((char *)i);
+        array[i] = shm_get(i);
     }
 
     strcpy(array[0])
