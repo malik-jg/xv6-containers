@@ -14,19 +14,19 @@ void thread_function(void *arg) {
     int tid = *(int *)arg;
 
     for (int i = 0; i < ITERATIONS; i++) {
-        printf("Thread %d: attempting to lock mutex %d\n", tid, mutex_id);
-        printf("%d", mutex_id);
+        //printf("Thread %d: attempting to lock mutex %d\n", tid, mutex_id);
+        //printf("%d", mutex_id);
         mutex_lock(mutex_id);
 
         //int temp = shared_resource;
         // shared_resource = temp + 1;
 
         //printf("Thread %d: incremented shared_resource to %d\n", tid, shared_resource);
-
-        mutex_unlock(mutex_id); 
-        printf("reachable \n");
         sleep(1);
-        printf("Thread %d: unlocked mutex %d\n", tid, mutex_id);
+        mutex_unlock(mutex_id); 
+        //printf("reachable \n");
+        
+        //printf("Thread %d: unlocked mutex %d\n", tid, mutex_id);
     }
 
     exit(0);
@@ -35,10 +35,10 @@ void thread_function(void *arg) {
 int main() {
     mutex_id = mutex_create("test_mutex");
     if (mutex_id < 0) {
-        printf("Failed to create mutex.\n");
+        //printf("Failed to create mutex.\n");
         exit(1);
     }
-    printf("Mutex id %d\n", mutex_id);
+    //printf("Mutex id %d\n", mutex_id);
 
     int pids[NUM_THREADS];
     int thread_ids[NUM_THREADS];
@@ -55,7 +55,7 @@ int main() {
     }
 
     int expected = NUM_THREADS * ITERATIONS;
-    printf("shared_resource %d expect %d\n", shared_resource, expected);
+    //printf("shared_resource %d expect %d\n", shared_resource, expected);
     
     //printf("Meow");
 
@@ -67,8 +67,8 @@ int main() {
 
     // Delete the mutex
     mutex_delete(mutex_id);
-    printf("Mutex %d deleted\n", mutex_id);
-    printf("TEST PASSED \n");
+    //printf("Mutex %d deleted\n", mutex_id);
+    printf("LVL 2 PASSED \n");
 
     exit(0);
 }

@@ -709,7 +709,7 @@ int mutex_create(char *name) {
             process->mutex_table[process->mutex_count] = &all_locks[i];
             process->mutex_count++;
 
-            printf("Created mutex %d for process %d. Mutex count: %d\n", i, process->pid, process->mutex_count);
+            //printf("Created mutex %d for process %d. Mutex count: %d\n", i, process->pid, process->mutex_count);
             return i; //mutex_id
         }
     }
