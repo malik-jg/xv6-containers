@@ -785,22 +785,23 @@ void mutex_unlock(int muxid) {
     }
 
 
-    if (cur_mutex->owner_id != process->pid) {
+    if (cur_mutex->owner_id != process->pid || cur_mutex-> status == 0) {
 		exit(0);
-        panic("Mutex unlock by non-owner");
+        panic("Mutex unlock by non-owner/release an already released mutex");
     }
 
-    acquiresleep(&cur_mutex->slock);
 
-    if (cur_mutex->status == 0) {
-        releasesleep(&cur_mutex->slock);
-        panic("Unlocking an already unlocked mutex");
+
+    if (cur_mutex->status != 0 && cur_mutex->owner_id == process->pid) {
+		acquiresleep(&cur_mutex->slock);
+
+    	cur_mutex->status = 0;
+    	cur_mutex->owner_id = -1;
+
+    	wakeup(&cur_mutex->slock);
     }
 
-    cur_mutex->status = 0;
-    cur_mutex->owner_id = -1;
-
-    wakeup(&cur_mutex->slock);
+	
 
     releasesleep(&cur_mutex->slock);
 }
@@ -820,7 +821,7 @@ cv_wait(int muxid){
 
     // struct mutex *cur_l = &all_locks[muxid];
 
-    // acquire(&lk->lk);
+    //acquire(&lk->lk);
 
     // if (lk->owner_id != myproc()->pid) {
     //     release(&lk->lk);
@@ -840,7 +841,7 @@ cv_wait(int muxid){
     // release(&lk->lk);
 	// printf("839");
 
-	exit(0);
+	// exit(0);
 
 }
 
@@ -863,6 +864,6 @@ cv_signal(int muxid){
 
     // release(&lk->lk);
 
-	exit(0);
+	// exit(0);
 
 }
