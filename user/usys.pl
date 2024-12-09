@@ -36,10 +36,11 @@ entry("getpid");
 entry("sbrk");
 entry("sleep");
 entry("uptime");
+entry("user_shm_get");
+entry("shm_rem");
 entry("cm_create_and_enter");
 entry("cm_setroot");
 entry("cm_maxproc");
 entry("procstat");
 entry("getcid");
-entry("user_shm_get");
-entry("shm_rem");
+

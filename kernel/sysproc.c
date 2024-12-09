@@ -117,7 +117,7 @@ uint64 sys_shm_rem(void) {
 
 	return shm_rem(name);
 
-
+}
 uint64
 sys_cm_create_and_enter(void){
 	return cm_create_and_enter();
@@ -161,7 +161,4 @@ sys_procstat(void){
 	}
     putstruct(user_ps, &kernel_ps, sizeof(kernel_ps));
     return 0;
-}
-	
-
 }
