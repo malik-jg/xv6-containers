@@ -185,10 +185,10 @@ test3(){
 void 
 result(int status){
     if(status < 0){
-        printf("Failed\n");
+        printf("FAILED\n");
     }
     else{
-        printf("Success\n");
+        printf("SUCCESS\n");
     }
 }
 
@@ -197,6 +197,7 @@ main(void){
     int status;
     char *parse = malloc(256);
     printf("Running Level 0 Tests\n");
+    printf("-------------------------------------------------------------------------------\n");
     printf("Test 1: Parsing test1.json Correctly: ");
     status = test1(parse);
     result(status);
