@@ -7,21 +7,22 @@ int main (void) {
     printf("\nTEST TWO: CHILD AND PARENT INTERACTIONS\n");
     const char * text = "test 2 message";
     char * shmem =  shm_get("shmem1");
-
-    strcpy(shmem, text);
     
     int pid = fork();
     
     if (pid == 0) {
+        sleep(2);
         char* b = shmem;
 
         if (strcmp(b, text) == 0) {
             printf("SUCCESS! CHILD CAN ACCESS SAME SHARED MEM AS PARENT (WITHOUT SHM_GET)!\n");
+        } else {
+            printf("FAILURE! CHILD CAN ACCESS SAME SHARED MEM AS PARENT (WITHOUT SHM_GET)!\n");
         }
         exit(0);
         
     } else {
-        
+        strcpy(shmem, text);
         wait(&pid);  
         
     }
@@ -66,6 +67,8 @@ int main (void) {
             printf("FAILURE! DOES NOT WORK FOR THREE MESSAGES\n");
         }
     }
+
+    //TODO: ADD THREE MESSAGES BEFORE FORK
 
 
     /*

@@ -15,10 +15,11 @@ int main (void) {
     } else {
         int post_exit = shm_rem("part1");
         if (post_exit == 1) {
-            printf("SHMEM IS DEALLOCATED BEFORE EXEC!\n");
+            printf("FAILURE! SHMEM IS DEALLOCATED BEFORE EXIT!\n");
         } else {
-            printf("SHMEM IS NOT DEALLOCATED BEFORE EXEC!\n");
+            printf("SUCCESS! SHMEM IS NOT DEALLOCATED BEFORE EXIT!\n");
         }
+
     }
 
     int pid = fork();
@@ -54,30 +55,15 @@ int main (void) {
         }
     }
 
-
-
-    shm_get("part4");
-    int pid2 = fork();
-
-    if (pid2 == 0) {
-        sleep(2);
-        exit(0);
-        
-    } else {
-        int pre_exit = shm_rem("part4");
-        if (pre_exit == 0) {
-            printf("SUCCESS! SHMEM IS NOT DEALLOCATED BEFORE EXIT!\n");
-        } else {
-            printf("FAILURE! SHMEM IS DEALLOCATED BEFORE EXIT!\n");
-        }
-        wait(&pid2); 
-    }
-
     int no_such_mem = shm_rem("no_memory");
 
     if (no_such_mem == -1) {
         printf("SUCCESS! SHM_REM ERROR WHEN UNDECLARED MEMORY!\n");
+    } else {
+        printf("FAILURE! MEMORY THAT DOESN'T EXIST IS BEING DEALLOCATED!");
     }
+
+    //DOUBLE FREE
 
     char * mem1 =  shm_get("memory1");
     shm_get("memory2");
@@ -109,8 +95,8 @@ int main (void) {
         }
     }
 
-    shm_rem("memory3");
     shm_rem("memory1");
+    shm_rem("memory3");
 
     printf("SUCCESS! NO KERNEL ERROR WHEN REM OCCURS OUT OF ORDER!\n");
     

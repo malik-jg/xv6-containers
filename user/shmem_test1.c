@@ -22,14 +22,12 @@ int main (void) {
         
     } else {
         char* mem =  shm_get("hello");
-         shm_get("hello2");
         
         strcpy(mem, text);
         printf("\tPARENT SENDING MESSAGE: \"%s\"\n", text);
         
         
         wait(&pid);  
-        shm_rem("hello2");
         shm_rem("hello");
     }
     printf("TEST ONE COMPLETE\n\n");
