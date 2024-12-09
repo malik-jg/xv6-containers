@@ -791,7 +791,7 @@ mutex_lock(int muxid) {
     cur_mutex->status = 1;
     cur_mutex->owner_id = process->pid;
 	//printf("774 \n");
-	release(&cur_mutex->slock);
+	releasesleep(&cur_mutex->slock);
 }
 
 
@@ -822,7 +822,6 @@ void mutex_unlock(int muxid) {
     wakeup(cur_mutex);
 
     releasesleep(&cur_mutex->slock);
-	return 0;
 }
 
 

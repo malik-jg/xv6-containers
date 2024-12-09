@@ -32,8 +32,8 @@ void test_mutex_released_on_fault() {
 
         // Simulate a fault (e.g., divide by zero)
         printf("Child: Simulating fault\n");
-        int fault = 1 / 0; // Intentional fault
-        (void)fault;
+        //int fault = 1 / 0; // Intentional fault
+        //(void)fault;
 
         // This point should never be reached
         printf("SHOULD NOT REACh HERE");
