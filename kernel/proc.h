@@ -86,6 +86,13 @@ struct cpu {
 	struct trapframe saved_pagetable_proc_tf;
 };
 
+struct proc_shmem {
+	uint64 va;
+	uint64 pa;
+	char name[16];
+	int status;
+};
+
 extern struct cpu cpus[NCPU];
 
 enum procstate
@@ -140,5 +147,9 @@ struct proc {
 	struct context    context;       // swtch() here to run process
 	struct file      *ofile[NOFILE]; // Open files
 	struct inode     *cwd;           // Current directory
-	char              name[16];      // Process name (debugging)
+	char             name[16];      // Process name (debugging)
+
+	struct proc_shmem shmems[SHM_MAXNUM];
+	int 			 shmem_count;
+	int				 shmem_alloc;
 };

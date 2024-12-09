@@ -9,6 +9,7 @@ struct sleeplock;
 struct stat;
 struct superblock;
 struct pstat;
+struct shmem;
 
 // bio.c
 void        binit(void);
@@ -108,6 +109,13 @@ int          either_copyout(int user_dst, uint64 dst, void *src, uint64 len);
 int          either_copyin(void *dst, int user_src, uint64 src, uint64 len);
 void         procdump(void);
 int          procstat(uint64 which, struct pstat *ps);
+
+char* map_va(uint64, char*);
+void  proc_free(char*);
+void shmem_fork(char *);
+
+char *shm_get(char *name);
+int shm_rem(char *name);
 
 // swtch.S
 void swtch(struct context *, struct context *);

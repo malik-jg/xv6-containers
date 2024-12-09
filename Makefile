@@ -140,6 +140,9 @@ UPROGS=\
 	$U/_grind\
 	$U/_wc\
 	$U/_zombie\
+	$U/_shmem_test1\
+	$U/_shmem_test2\
+	$U/_shmem_test3\
 	$U/_jsmn_test\
 	$U/_cm\
 	$U/_dockv6\

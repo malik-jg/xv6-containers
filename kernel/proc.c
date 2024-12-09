@@ -31,6 +31,9 @@ extern char trampoline[]; // trampoline.S
 // must be acquired before any p->lock.
 struct spinlock wait_lock;
 
+//shared memory struct
+
+
 // Allocate a page for each process's kernel stack.
 // Map it high in memory, followed by an invalid
 // guard page.
@@ -332,6 +335,20 @@ fork(void)
 		if (p->ofile[i]) np->ofile[i] = filedup(p->ofile[i]);
 	np->cwd = idup(p->cwd);
 
+	//shmem stuff
+	memmove(np->shmems, p->shmems, sizeof(struct proc_shmem) * SHM_MAXNUM);
+	np->shmem_count = p->shmem_count;
+	np->shmem_alloc = p->shmem_alloc;
+
+	for (int i = 0; i < p->shmem_alloc; i++) {
+		if (p->shmems[i].status == 1) {
+			shmem_fork(p->shmems[i].name);
+			uvmunmap(np->pagetable, p->shmems[i].va, 1, 0);
+			mappages(np->pagetable, p->shmems[i].va, PGSIZE, p->shmems[i].pa, PTE_W | PTE_R | PTE_U);
+			np->shmems[i].pa = p->shmems[i].pa;
+		}
+	}
+
 	safestrcpy(np->name, p->name, sizeof(p->name));
 
 	pid = np->pid;
@@ -401,6 +418,12 @@ exit(int status)
 	// Give any children to init.
 	reparent(p);
 
+	//shmem stuff
+	int max = p->shmem_alloc;
+	for (int i = 0; i < max; i++) {
+		//printf("i: %d EXIT %s\n", i, p->shmems[i].name);
+		shm_rem(p->shmems[i].name);
+	}
 	// Parent might be sleeping in wait().
 	wakeup(p->parent);
 
@@ -715,6 +738,114 @@ procdump(void)
 	}
 }
 
+char* map_va(uint64 memory, char* name) {
+	
+	
+	//CHECK IF AN OPENING EXISTS
+	struct proc * process = myproc();
+
+	for (int i = 0; i < process->shmem_alloc; i++) {
+		if (process->shmems[i].status == 0) {
+			uvmunmap(myproc()->pagetable, process->shmems[i].va, 1, 0);
+			mappages(myproc()->pagetable, process->shmems[i].va, PGSIZE, memory, PTE_W | PTE_R | PTE_U);
+			strncpy(myproc()->shmems[i].name, name, strlen(name));
+			myproc()->shmems[i].status = 1;
+			myproc()->shmems[i].pa = memory;
+			return (char *)process->shmems[i].va;
+		}
+	}
+	//open new to put shmem
+	uint64 virtual = (uint64)(PGROUNDUP(myproc()->sz));
+	//mapping pages
+	//printf("VA of %s: %ld\n", name, virtual);
+	if (mappages(myproc()->pagetable, virtual, PGSIZE, memory, PTE_W | PTE_R | PTE_U) > 0) {
+		printf("FAILURE IN MAPPAGES\n");
+	} 
+	myproc()->shmems[myproc()->shmem_count].va = virtual;
+	myproc()->shmems[myproc()->shmem_count].pa = memory;
+	myproc()->shmems[myproc()->shmem_count].status = 1;
+	strncpy(myproc()->shmems[myproc()->shmem_count].name, name, strlen(name));
+	myproc()->shmem_count++;
+	myproc()->shmem_alloc++;
+	
+	//account for new size
+	myproc()->sz = (uint64)virtual + PGSIZE;
+	return (char *)virtual;
+}
+
+void proc_free(char* name) {
+	int len = strlen(name);
+	struct proc * process = myproc();
+	//similar process as before to track down the mem in the proc
+	int flag = 0;
+	for (int i = 0; i < process->shmem_alloc; i++) {
+		int len2 = strlen(process->shmems[i].name);
+		if (len == len2) {
+			if (flag == 0 && strncmp(name, process->shmems[i].name, len) == 0) {		
+				process->shmems[i].status = 0;
+
+				//if its not the last
+				if (i != process->shmem_alloc - 1) {
+					uvmunmap(myproc()->pagetable, process->shmems[i].va, 1, 0);
+					process->shmem_count--;
+					void* temp_mem = kalloc();
+					process->shmems[i].pa = (uint64) temp_mem;
+					memset(process->shmems[i].name, 0, 16);
+					//should map junk for now
+					
+					mappages(myproc()->pagetable, process->shmems[i].va, PGSIZE, (uint64) temp_mem, PTE_W | PTE_R | PTE_U);
+
+				} else {
+					flag = 1;
+					uvmunmap(myproc()->pagetable, process->shmems[i].va, 1, 0);
+					process->shmem_count--;
+					process->shmem_alloc--;
+					memset(process->shmems[i].name, 0, 16);
+					myproc()->sz = myproc()->sz - PGSIZE;
+					/*
+					To whoever may one day read this: I apologize for the ugliest code ever, 
+					I just literally could not figure out any other way to do this. Thank you
+					for understanding.
+					*/
+					for (int j = i - 1; j >= 0; j--) {
+						//unmap all empty pages before it
+						if (process->shmems[j].status == 0) {
+							uvmunmap(myproc()->pagetable, process->shmems[j].va, 1, 0);			
+							process->shmem_alloc--;
+							kfree((void*) process->shmems[j].pa);
+							myproc()->sz = myproc()->sz - PGSIZE;
+						} else {
+							break;
+						}
+					}
+				}
+
+				
+				
+
+			}
+			//if we have to remove one, we move all of the next ones a spot to the left
+			if (flag && i != SHM_MAXNUM - 1) {
+				//move each entry to the right one
+				process->shmems[i] = process->shmems[i + 1];
+			}
+		}
+	}
+}
+
+
+//move pages to the left now
+				/*if (process->shmem_count - i > 0 && i != myproc()->shmem_count) {
+					for (int j = i; j < process->shmem_count; j++) {
+						uint64 current_va = process->shmems[j].va;
+						process->shmems[j].va = process->shmems[j].va - PGSIZE;
+						struct proc_shmem next = process->shmems[j + 1];
+						//printf("MAPPING %ld to %ld\n", next.va, current_va);
+						mappages(myproc()->pagetable, current_va, PGSIZE, next.pa, PTE_W | PTE_R | PTE_U);
+						//process->shmems[j + 1].va = process->shmems[j + 1].va - PGSIZE;
+					}
+					process->shmems[process->shmem_count].va -= PGSIZE;
+				}*/
 int nextcid = 1;
 
 int

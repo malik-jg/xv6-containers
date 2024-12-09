@@ -5,7 +5,6 @@
 #include "riscv.h"
 #include "defs.h"
 #include "fs.h"
-
 /*
  * the kernel's page table.
  */
@@ -14,6 +13,16 @@ pagetable_t kernel_pagetable;
 extern char etext[]; // kernel.ld sets this to end of kernel code.
 
 extern char trampoline[]; // trampoline.S
+
+struct shmem {
+	char name[16];
+	uint64 physical_address;
+	int reference_count;
+};
+
+struct shmem shared_memory [SHM_MAXNUM];
+
+
 
 // Make a direct-map page table for the kernel.
 pagetable_t
@@ -413,5 +422,78 @@ copyinstr(pagetable_t pagetable, char *dst, uint64 srcva, uint64 max)
 		return 0;
 	} else {
 		return -1;
+	}
+}
+
+char *shm_get(char *name) {
+	//check all memory for similarity
+	int len = strlen(name);
+
+	for (int i = 0; i < SHM_MAXNUM; i++) {
+		if (shared_memory[i].reference_count > 0) {
+			int len2 = strlen(shared_memory[i].name);
+			if (len == len2) {
+				if (strncmp(name, shared_memory[i].name, len) == 0) {
+					//one more process references
+					shared_memory[i].reference_count++;
+					return (char *)(map_va(shared_memory[i].physical_address, name));
+				}
+			}	
+		}
+	}
+	//check for open space
+	for (int i = 0; i < SHM_MAXNUM; i++) {
+		//check if unused
+		if (shared_memory[i].reference_count == 0) {
+			strncpy(shared_memory[i].name, name, strlen(name));
+			shared_memory[i].physical_address = (uint64)((kalloc()));
+			//one process uses this
+			shared_memory[i].reference_count = 1;
+
+			return (char *)(map_va(shared_memory[i].physical_address, name));
+		}
+	}
+	return "";
+}
+
+int shm_rem(char *name) {
+	int len = strlen(name);
+	
+	for (int i = 0; i < SHM_MAXNUM; i++) {
+		int len2 = strlen(shared_memory[i].name);
+		if (len == len2) {
+			if (strncmp(name, shared_memory[i].name, len) == 0) {
+				//should remove the reference
+				shared_memory[i].reference_count--;
+
+				proc_free(name);
+
+
+				if (shared_memory[i].reference_count == 0) {
+					kfree((void*)shared_memory[i].physical_address);
+					memset(shared_memory[i].name, 0, 16);
+					//helps with testing
+					return 1;
+				}
+				//if shmems are to be moved
+				
+				return 0;
+			}	
+		}
+	}
+	return -1;
+}
+
+void shmem_fork(char * name) {
+	int len = strlen(name);
+	for (int i = 0; i < SHM_MAXNUM; i++) {
+		if (shared_memory[i].reference_count > 0) {
+			int len2 = strlen(shared_memory[i].name);
+			if (len == len2 && strncmp(name, shared_memory[i].name, len) == 0) {
+				
+				shared_memory[i].reference_count++;
+				return;
+			}
+		}
 	}
 }

@@ -99,6 +99,25 @@ sys_uptime(void)
 	return xticks;
 }
 
+uint64 sys_shm_get(void) {
+	//printf("In SYS_SHM_GET\n");
+	char* name = "";
+	argstr(0, name, 16);
+
+	char *shared_mem_addr = shm_get(name);
+	
+	//printf("ADDR: %ld\n", (uint64)shared_mem_addr);
+	//printf("Before proc\n");
+	return (uint64) shared_mem_addr;
+	
+}
+uint64 sys_shm_rem(void) {
+	char* name = "";
+	argstr(0, name, 16);
+
+	return shm_rem(name);
+
+
 uint64
 sys_cm_create_and_enter(void){
 	return cm_create_and_enter();
@@ -142,4 +161,7 @@ sys_procstat(void){
 	}
     putstruct(user_ps, &kernel_ps, sizeof(kernel_ps));
     return 0;
+}
+	
+
 }

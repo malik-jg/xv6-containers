@@ -30,6 +30,13 @@ exec(char *path, char **argv)
 	pagetable_t    pagetable = 0, oldpagetable;
 	struct proc   *p         = myproc();
 
+	//ADDED FOR SHMEM
+	int max = p->shmem_alloc;
+	for (int i = 0; i < max; i++) {
+		//printf("i: %d EXIT %s\n", i, p->shmems[i].name);
+		shm_rem(p->shmems[i].name);
+	}
+
 	begin_op();
 
 	if ((ip = namei(path)) == 0) {
@@ -62,6 +69,12 @@ exec(char *path, char **argv)
 	ip = 0;
 
 	p            = myproc();
+
+	//SHMEM STUFF
+	for (int i = 0; i < p->shmem_count; p++) {
+		shm_rem(p->shmems[i].name);
+	}
+	//END SHMEM STUFF
 	uint64 oldsz = p->sz;
 
 	// Allocate some pages at the next page boundary.

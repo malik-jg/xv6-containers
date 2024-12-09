@@ -41,3 +41,5 @@ entry("cm_setroot");
 entry("cm_maxproc");
 entry("procstat");
 entry("getcid");
+entry("user_shm_get");
+entry("shm_rem");

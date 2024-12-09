@@ -47,6 +47,11 @@ void *memcpy(void *, const void *, uint);
 void ps(void);
 void strconcat(char *, char *, char *);
 
+uint64 *user_shm_get(char *name);
+char * shm_get(char *name);
+
+int shm_rem(char *name);
+
 // umalloc.c
 void *malloc(uint);
 void  free(void *);

@@ -174,3 +174,7 @@ ps(void){
         }
     }
 }
+
+char * shm_get(char *name) {
+	return (char *) user_shm_get(name);
+}
