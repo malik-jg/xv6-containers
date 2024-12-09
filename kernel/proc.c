@@ -351,6 +351,16 @@ exit(int status)
 
 	if (p == initproc) panic("init exiting");
 
+	//so cv_wait doesnt aboslutely shit itself
+	for (int i = 0; i < p->mutex_count; i++) {
+        struct mutex *cur_mutex = p->mutex_table[i];
+        acquiresleep(&cur_mutex->slock);
+        cur_mutex->status = 0;        
+        cur_mutex->owner_id = -1;
+        wakeup(cur_mutex);            
+        releasesleep(&cur_mutex->slock);
+    }
+
 	// Close all open files.
 	for (int fd = 0; fd < NOFILE; fd++) {
 		if (p->ofile[fd]) {
@@ -747,15 +757,23 @@ void
 mutex_lock(int muxid) {
     struct proc *process = myproc();
     struct mutex *cur_mutex = &all_locks[muxid];
+
+
+
 	//printf("750 \n");
+    if (muxid < 0 || muxid >= MAX_MAXNUM) {
+        panic("Invalid mutex ID in mutex_lock");
+    }
+
     int found = 0;
     for (int i = 0; i < process->mutex_count; i++) {
         if (process->mutex_table[i]->mutex_id == muxid) {
-			//printf("754 \n");
             found = 1;
             break;
         }
     }
+
+
 	//printf("759 \n");
     if (!found) {
         panic("Invalid mutex ID");
@@ -763,15 +781,17 @@ mutex_lock(int muxid) {
 	//printf("763 \n");
     acquiresleep(&cur_mutex->slock);
 
-    while (cur_mutex->status == 1 && cur_mutex->owner_id == process->pid) {
+    while (cur_mutex->status == 1) {
 		//printf("767 \n");
-        sleep(&cur_mutex->slock, &cur_mutex->slock.lk); 
+        sleep(cur_mutex, &cur_mutex->slock.lk); 
     }
+
+	cur_mutex->owner_id = myproc()->pid;
 	//printf("771 \n");
     cur_mutex->status = 1;
     cur_mutex->owner_id = process->pid;
 	//printf("774 \n");
-    releasesleep(&cur_mutex->slock);
+	release(&cur_mutex->slock);
 }
 
 
@@ -783,27 +803,26 @@ void mutex_unlock(int muxid) {
 	if (muxid < 0 || muxid >= MAX_MAXNUM) {
         panic("Invalid mutex ID");
     }
-
-
-    if (cur_mutex->owner_id != process->pid || cur_mutex-> status == 0) {
+	printf("804");
+    //acquiresleep(&cur_mutex->slock);
+	printf("806");
+    if (cur_mutex->owner_id != process->pid) {
+		//exit(0);
+		//release(&cur_mutex->slock);
 		exit(0);
         panic("Mutex unlock by non-owner/release an already released mutex");
     }
-
-
-
-    if (cur_mutex->status != 0 && cur_mutex->owner_id == process->pid) {
-		acquiresleep(&cur_mutex->slock);
-
-    	cur_mutex->status = 0;
-    	cur_mutex->owner_id = -1;
-
-    	wakeup(&cur_mutex->slock);
-    }
-
 	
+
+    // Release the mutex
+    cur_mutex->status = 0;
+    cur_mutex->owner_id = -1;
+
+    // Wake up any threads waiting on the mutex
+    wakeup(cur_mutex);
 
     releasesleep(&cur_mutex->slock);
+	return 0;
 }
 
 
@@ -811,59 +830,48 @@ void mutex_unlock(int muxid) {
 
 
 
-void 
-cv_wait(int muxid){
+void cv_wait(int muxid) {
+    if (muxid < 0 || muxid >= MAX_MAXNUM) {
+        panic("Invalid mutex ID in cv_wait");
+    }
 
-	// if (muxid < 0 || muxid >= MAX_MAXNUM) {
-	// printf("815");
-    //     exit(0);
-    // }
+    struct mutex *cur_mutex = &all_locks[muxid];
+    struct proc *p = myproc();
 
-    // struct mutex *cur_l = &all_locks[muxid];
-
-    //acquire(&lk->lk);
-
-    // if (lk->owner_id != myproc()->pid) {
-    //     release(&lk->lk);
-	// 	printf("825");
-    //     exit(0);
-    // }
-
-    // lk->status = 0;
-    // lk->owner_id = -1;
-
-    // sleep(lk, &lk->lk);
-
-    // acquire(&lk->lk);
-    // lk->status = 1;
-    // lk->owner_id = myproc()->pid;
-
-    // release(&lk->lk);
-	// printf("839");
-
-	// exit(0);
-
-}
-
-
-void 
-cv_signal(int muxid){
-
-    // if (muxid < 0 || muxid >= MAX_MAXNUM) {
-    //     exit(0);
-    // }
+    if (cur_mutex->owner_id != p->pid) {
+        panic("cv_wait called by non-owner");
+    }
+	printf(" 839\n");
 	
-	// struct mutex *cur_l = &all_locks[muxid];
+    acquiresleep(&cur_mutex->slock);
+    cur_mutex->status = 0;     
+    cur_mutex->owner_id = -1;   
 
-    // acquire(&cur_l->lk);
+	printf(" 845\n");
+	
+    //sleep(cur_mutex, &cur_mutex->slock.lk);
 
-    // if (all_locks[i]->status == 0) {
-    //     // Wake up any threads waiting on this mutex
-    //     wakeup(lk);
-    // }
+	printf(" 839\n");
 
-    // release(&lk->lk);
+    cur_mutex->status = 1;       
+    cur_mutex->owner_id = p->pid;
 
-	// exit(0);
+	printf(" 842\n"); 
 
+    releasesleep(&cur_mutex->slock);
+
+	printf(" 844\n");
+}
+
+
+void cv_signal(int muxid) {
+    if (muxid < 0 || muxid >= MAX_MAXNUM) {
+        panic("Invalid mutex ID in cv_signal");
+    }
+
+    struct mutex *cur_mutex = &all_locks[muxid];
+
+    acquiresleep(&cur_mutex->slock);
+    wakeup(cur_mutex);
+    releasesleep(&cur_mutex->slock);
 }

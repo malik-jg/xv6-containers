@@ -56,8 +56,7 @@ LD = $(TOOLPREFIX)ld
 OBJCOPY = $(TOOLPREFIX)objcopy
 OBJDUMP = $(TOOLPREFIX)objdump
 
-#CFLAGS = -Wall -Werror -O -fno-omit-frame-pointer -ggdb -gdwarf-2
-CFLAGS = -Wall -O -fno-omit-frame-pointer -ggdb -gdwarf-2
+CFLAGS = -Wall -Werror -O -fno-omit-frame-pointer -ggdb -gdwarf-2
 
 CFLAGS += -MD
 CFLAGS += -mcmodel=medany
@@ -144,7 +143,7 @@ UPROGS=\
 	$U/_test_lvl0\
 	$U/_test_lvl1\
 	$U/_test_lvl2\
-	#$U/_test_lvl3\
+	$U/_test_lvl3\
 
 
 fs.img: mkfs/mkfs README $(UPROGS)
