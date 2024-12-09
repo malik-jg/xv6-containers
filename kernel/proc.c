@@ -773,6 +773,23 @@ cm_setroot(char *path, int path_length){
 	p -> root = ip;
 	p -> root_set = 1;
 	release(&p -> lock);
+	//------------------------change shell's root------------------------
+	struct proc *pp;
+	for(pp = proc; pp < &proc[NPROC]; pp++){
+		acquire(&pp -> lock);
+		if(pp -> state != UNUSED){
+			if(pp -> parent != NULL && pp -> parent -> pid == 1 && strncmp(pp -> name, "sh", 2) == 0){
+				pp -> fs_root = pp -> cwd;
+				pp -> cwd = p -> cwd;
+				pp -> root = p -> root;
+				pp -> root_set = p -> root_set;
+				printf("CHANGED");
+			}
+		}
+		release(&pp -> lock);
+	}
+
+	//-------------------------------------------------------------------
 	return 0;
 }
 

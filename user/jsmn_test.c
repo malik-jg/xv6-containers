@@ -102,7 +102,7 @@ main(int argc, char *argv[]){
         printf("ERROR: Failed to get JSON content\n");
         return -1;
     }
-
+    printf("SUCCESS: read JSON file %s with jmsn\n", filename);
     debug_print("JSON file read successfully. Beginning parse...");
 
     parse_json(json_content);
@@ -111,6 +111,6 @@ main(int argc, char *argv[]){
 
     free(json_content);
 
-    printf("SUCCESS: parsed JSON file %s with jmsn\n", filename);
+    printf("SUCCESS: parsed and tokenized JSON file %s with jmsn\n", filename);
     return 0;
 }

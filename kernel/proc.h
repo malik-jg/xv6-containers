@@ -112,6 +112,7 @@ struct proc {
 	// For Containers
 	int 		   cid;	  			         // Container ID
 	struct inode   *root;		     		 // Root directory of container
+	struct inode   *fs_root;		 		 // Root directory of file system		
 	int 		   root_set;		 		 // Flag to check if container root has been set
 	int 		   maxprocs;		         // Maximum number of processes in container
 	int 	       maxprocs_set;		     // Flag to check if maxprocs has been set

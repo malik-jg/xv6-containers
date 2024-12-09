@@ -173,6 +173,8 @@ cm(const char *filename){
     char *json_content = read_file(filename);
     if(!json_content){
         printf("ERROR: Failed to get JSON content\n");
+        unlink(REQUEST_FILE);
+        unlink(CONTAINER_FILE);
         exit(1);
     }
     char **token_values = parse_json(json_content);
@@ -182,10 +184,10 @@ cm(const char *filename){
         exit(1);
     }
 
-    char* init = token_values[2];
-    char* root_fs = token_values[4];
+    char* init = token_values[INIT_TOKEN];
+    char* root_fs = token_values[ROOT_FS_TOKEN];
 
-    char *max_processes_str = token_values[6];
+    char *max_processes_str = token_values[MAX_PROCESSES_TOKEN];
     int max_processes = atoi(max_processes_str);
 
     int fd = open(INIT_FILE, O_WRONLY | O_CREATE);
@@ -228,7 +230,7 @@ cm(const char *filename){
         }
         cm_status = cm_create_and_enter();
         if(cm_status < 0){
-			printf("ERROR: Failed to create and enter container\n");
+			printf("ERROR: Failed cto create and enter container\n");
 			return -1;
 		}
         char *args[] = {init, NULL};
@@ -281,6 +283,7 @@ io(const char *container){
     }
     init_process[n] = '\0';
     close(fd);
+    
     printf("IO performing I/O operations on container %s with init process %s\n", container, init_process);
     
     char *args[] = {init_process, NULL};

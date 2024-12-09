@@ -624,11 +624,24 @@ static struct inode *
 namex(char *path, int nameiparent, char *name)
 {
 	struct inode *ip, *next;
+	struct proc *p = myproc();
 
-	if (*path == '/')
-		ip = iget(ROOTDEV, ROOTINO);
-	else
-		ip = idup(myproc()->cwd);
+	if((p != NULL) && (p -> root_set == 1)){
+		if(*path == '/'){
+			ip = iget(p -> cwd -> dev, p -> cwd -> inum);
+		}
+		else{
+			ip = idup(p -> cwd);
+		}
+	} 
+	else{
+		if(*path == '/'){
+			ip = iget(ROOTDEV, ROOTINO);
+		} 
+		else {
+			ip = idup(p -> cwd);
+		}
+	}
 
 	while ((path = skipelem(path, name)) != 0) {
 		ilock(ip);
@@ -636,12 +649,19 @@ namex(char *path, int nameiparent, char *name)
 			iunlockput(ip);
 			return 0;
 		}
-		if (nameiparent && *path == '\0') {
+		if(p -> root_set && ip == p -> root && namecmp(name, "..") == 0){
+            if(nameiparent && *path == '\0'){
+                iunlock(ip);
+                return ip;
+            }
+            next = idup(ip);
+		}
+		else if (nameiparent && *path == '\0') {
 			// Stop one level early.
 			iunlock(ip);
 			return ip;
 		}
-		if ((next = dirlookup(ip, name, 0)) == 0) {
+		else if ((next = dirlookup(ip, name, 0)) == 0) {
 			iunlockput(ip);
 			return 0;
 		}
