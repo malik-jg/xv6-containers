@@ -30,6 +30,13 @@ exec(char *path, char **argv)
 	pagetable_t    pagetable = 0, oldpagetable;
 	struct proc   *p         = myproc();
 
+	//ADDED FOR SHMEM
+	int max = p->shmem_alloc;
+	for (int i = 0; i < max; i++) {
+		//printf("i: %d EXIT %s\n", i, p->shmems[i].name);
+		shm_rem(p->shmems[i].name);
+	}
+
 	begin_op();
 
 	if ((ip = namei(path)) == 0) {

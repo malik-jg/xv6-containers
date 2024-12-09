@@ -5,15 +5,31 @@ int main (void) {
     printf("\nTEST THREE: FORK(), EXIT(), EXEC()\n");
     shm_get("part1");
 
+
+    int control = fork();
     
+    if (control == 0) {
+        sleep(2);
+        exit(0);
+        
+    } else {
+        int post_exit = shm_rem("part1");
+        if (post_exit == 1) {
+            printf("SHMEM IS DEALLOCATED BEFORE EXEC!\n");
+        } else {
+            printf("SHMEM IS NOT DEALLOCATED BEFORE EXEC!\n");
+        }
+    }
+
     int pid = fork();
+    shm_get("part2");
     
     if (pid == 0) {
         exit(0);
         
     } else {
         wait(&pid); 
-        int post_exit = shm_rem("part1");
+        int post_exit = shm_rem("part2");
         if (post_exit == 1) {
             printf("SUCCESS! SHMEM IS DEALLOCATED AFTER EXIT!\n");
         } else {
@@ -21,7 +37,26 @@ int main (void) {
         }
     }
 
-    shm_get("part2");
+    shm_get("part3");
+    int pid_exec = fork();
+    
+    if (pid_exec == 0) {
+        char * args[] = {"echo", "\t... TESTING EXEC ..."};
+        exec("echo", args);
+        
+    } else {
+        wait(&pid_exec); 
+        int post_exit = shm_rem("part3");
+        if (post_exit == 1) {
+            printf("SUCCESS! SHMEM IS DEALLOCATED AFTER EXEC!\n");
+        } else {
+            printf("FAILURE! SHMEM IS NOT DEALLOCATED AFTER EXEC!\n");
+        }
+    }
+
+
+
+    shm_get("part4");
     int pid2 = fork();
 
     if (pid2 == 0) {
@@ -29,7 +64,7 @@ int main (void) {
         exit(0);
         
     } else {
-        int pre_exit = shm_rem("part2");
+        int pre_exit = shm_rem("part4");
         if (pre_exit == 0) {
             printf("SUCCESS! SHMEM IS NOT DEALLOCATED BEFORE EXIT!\n");
         } else {
