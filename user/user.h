@@ -1,4 +1,6 @@
 struct stat;
+#include "kernel/types.h"
+struct stat;
 struct pstat;
 
 // system calls
@@ -24,6 +26,14 @@ int   getcid(void);
 char *sbrk(int);
 int   sleep(int);
 int   uptime(void);
+
+
+int mutex_create(char *name);
+void mutex_delete(int muxid);
+void mutex_lock(int muxid);
+void mutex_unlock(int muxid);
+void cv_wait(int muxid);
+void cv_signal(int muxid);
 int   cm_create_and_enter(void);
 int   cm_setroot(char *, int);
 int   cm_maxproc(int);

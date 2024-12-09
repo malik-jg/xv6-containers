@@ -36,6 +36,8 @@ entry("getpid");
 entry("sbrk");
 entry("sleep");
 entry("uptime");
+
+
 entry("user_shm_get");
 entry("shm_rem");
 entry("cm_create_and_enter");
@@ -44,3 +46,9 @@ entry("cm_maxproc");
 entry("procstat");
 entry("getcid");
 
+entry("mutex_create");
+entry("mutex_delete");
+entry("mutex_lock");
+entry("mutex_unlock");
+entry("cv_wait");
+entry("cv_signal");

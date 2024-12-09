@@ -10,10 +10,18 @@
 #include "fs.h"
 #include "file.h"
 #include "pstat.h"
+#include "sleeplock.h"
+
+
+
 
 struct cpu cpus[NCPU];
 
 struct proc proc[NPROC];
+
+
+
+struct mutex all_locks[MAX_MAXNUM];
 
 struct proc *initproc;
 
@@ -280,15 +288,14 @@ growproc(int n)
 
 // Create a new process, copying the parent.
 // Sets up child kernel stack to return as if from fork() system call.
-int
-fork(void)
-{
-	int          i, pid;
-	struct proc *np;
-	struct proc *p = myproc();
+int fork(void) {
+    int i, pid;
+    struct proc *np;
+    struct proc *p = myproc();
 
-	// Allocate process.
-	if ((np = allocproc()) == 0) { return -1; }
+    if ((np = allocproc()) == 0) {
+        return -1;
+    }
 
 	if(p -> cid > 0 && p -> maxprocs > 0){
 		struct proc *pp;
@@ -303,16 +310,14 @@ fork(void)
 		}
 	}
 
-	// Copy user memory from parent to child.
-	if (uvmcopy(p->pagetable, np->pagetable, p->sz) < 0) {
-		freeproc(np);
-		release(&np->lock);
-		return -1;
-	}
-	np->sz = p->sz;
+    if (uvmcopy(p->pagetable, np->pagetable, p->sz) < 0) {
+        freeproc(np);
+        release(&np->lock);
+        return -1;
+    }
+    np->sz = p->sz;
 
-	// copy saved user registers.
-	*(np->trapframe) = *(p->trapframe);
+    *(np->trapframe) = *(p->trapframe);
 
 	np -> cid = p -> cid;
 	np -> root_set = p -> root_set;
@@ -326,14 +331,12 @@ fork(void)
 	else{
 		np -> root = 0;
 	}
+    np->trapframe->a0 = 0;
 
-	// Cause fork to return 0 in the child.
-	np->trapframe->a0 = 0;
-
-	// increment reference counts on open file descriptors.
-	for (i = 0; i < NOFILE; i++)
-		if (p->ofile[i]) np->ofile[i] = filedup(p->ofile[i]);
-	np->cwd = idup(p->cwd);
+    for (i = 0; i < NOFILE; i++)
+        if (p->ofile[i])
+            np->ofile[i] = filedup(p->ofile[i]);
+    np->cwd = idup(p->cwd);
 
 	//shmem stuff
 	memmove(np->shmems, p->shmems, sizeof(struct proc_shmem) * SHM_MAXNUM);
@@ -349,22 +352,32 @@ fork(void)
 		}
 	}
 
-	safestrcpy(np->name, p->name, sizeof(p->name));
+    safestrcpy(np->name, p->name, sizeof(p->name));
 
-	pid = np->pid;
+    pid = np->pid;
 
-	release(&np->lock);
+    //Copy mutex table and increment references
+    for (int i = 0; i < p->mutex_count; i++) {
+       np->mutex_table[i] = p->mutex_table[i];
+    	np->mutex_table[i]->referenced_by++;
+	}
+	np->mutex_count = p->mutex_count;
 
-	acquire(&wait_lock);
-	np->parent = p;
-	release(&wait_lock);
+    release(&np->lock);
 
-	acquire(&np->lock);
-	np->state = RUNNABLE;
-	release(&np->lock);
+    acquire(&wait_lock);
+    np->parent = p;
+    release(&wait_lock);
 
-	return pid;
+    acquire(&np->lock);
+    np->state = RUNNABLE;
+    release(&np->lock);
+
+    return pid;
 }
+
+
+
 
 // Pass p's abandoned children to init.
 // Caller must hold wait_lock.
@@ -390,6 +403,16 @@ exit(int status)
 	struct proc *p = myproc();
 
 	if (p == initproc) panic("init exiting");
+
+	//so cv_wait doesnt aboslutely shit itself
+	for (int i = 0; i < p->mutex_count; i++) {
+        struct mutex *cur_mutex = p->mutex_table[i];
+        acquiresleep(&cur_mutex->slock);
+        cur_mutex->status = 0;        
+        cur_mutex->owner_id = -1;
+        wakeup(cur_mutex);            
+        releasesleep(&cur_mutex->slock);
+    }
 
 	// Close all open files.
 	for (int fd = 0; fd < NOFILE; fd++) {
@@ -738,6 +761,186 @@ procdump(void)
 	}
 }
 
+
+
+
+int mutex_create(char *name) {
+    struct proc *process = myproc();
+
+    // Find an unused mutex slot in `all_locks`
+    for (int i = 0; i < MAX_MAXNUM; i++) {
+        if (all_locks[i].status == 0) { 
+            all_locks[i].mutex_id = i;
+            all_locks[i].status = 0; 
+            all_locks[i].owner_id = -1; 
+            all_locks[i].referenced_by = 1;
+            initsleeplock(&all_locks[i].slock, name);
+
+            // Check if process's mutex table has space
+            if (process->mutex_count >= MAX_MAXNUM) {
+                printf("Process %d full table \n", process->pid);
+                return -1;
+            }
+
+            // Add mutex to process's mutex table
+            process->mutex_table[process->mutex_count] = &all_locks[i];
+            process->mutex_count++;
+
+            //printf("Created mutex %d for process %d. Mutex count: %d\n", i, process->pid, process->mutex_count);
+            return i; //mutex_id
+        }
+    }
+
+    printf("Failed to create mutex for process %d\n", process->pid);
+    return -1; //no avialable,c an't create
+}
+
+void mutex_delete(int muxid) {
+    struct proc *process = myproc();
+    int flag = -1;
+
+    for (int i = 0; i < process->mutex_count; i++) {
+        if (process->mutex_table[i]->mutex_id == muxid) {
+            process->mutex_table[i]->referenced_by--;
+            flag = i;
+        }
+        if (flag != -1 && i < process->mutex_count - 1) {
+            process->mutex_table[i] = process->mutex_table[i + 1];
+        }
+    }
+
+    if (flag != -1) {
+        process->mutex_count--;
+    }
+
+    if (all_locks[muxid].referenced_by == 0) {
+        all_locks[muxid].status = 0;
+    }
+}
+
+
+
+void
+mutex_lock(int muxid) {
+    struct proc *process = myproc();
+    struct mutex *cur_mutex = &all_locks[muxid];
+
+
+
+	//printf("750 \n");
+    if (muxid < 0 || muxid >= MAX_MAXNUM) {
+        panic("Invalid mutex ID in mutex_lock");
+    }
+
+    int found = 0;
+    for (int i = 0; i < process->mutex_count; i++) {
+        if (process->mutex_table[i]->mutex_id == muxid) {
+            found = 1;
+            break;
+        }
+    }
+
+
+	//printf("759 \n");
+    if (!found) {
+        panic("Invalid mutex ID");
+    }
+	//printf("763 \n");
+    acquiresleep(&cur_mutex->slock);
+
+    while (cur_mutex->status == 1) {
+		//printf("767 \n");
+        sleep(cur_mutex, &cur_mutex->slock.lk); 
+    }
+
+	cur_mutex->owner_id = myproc()->pid;
+	//printf("771 \n");
+    cur_mutex->status = 1;
+    cur_mutex->owner_id = process->pid;
+	//printf("774 \n");
+	releasesleep(&cur_mutex->slock);
+}
+
+
+void mutex_unlock(int muxid) {
+    struct proc *process = myproc();
+    struct mutex *cur_mutex = &all_locks[muxid];
+
+
+	if (muxid < 0 || muxid >= MAX_MAXNUM) {
+        panic("Invalid mutex ID");
+    }
+	printf("804");
+    //acquiresleep(&cur_mutex->slock);
+	printf("806");
+    if (cur_mutex->owner_id != process->pid) {
+		//exit(0);
+		//release(&cur_mutex->slock);
+		exit(0);
+        panic("Mutex unlock by non-owner/release an already released mutex");
+    }
+	
+
+    // Release the mutex
+    cur_mutex->status = 0;
+    cur_mutex->owner_id = -1;
+
+    // Wake up any threads waiting on the mutex
+    wakeup(cur_mutex);
+
+    releasesleep(&cur_mutex->slock);
+}
+
+
+
+
+
+
+void cv_wait(int muxid) {
+    if (muxid < 0 || muxid >= MAX_MAXNUM) {
+        panic("Invalid mutex ID in cv_wait");
+    }
+
+    struct mutex *cur_mutex = &all_locks[muxid];
+    struct proc *p = myproc();
+
+    if (cur_mutex->owner_id != p->pid) {
+        panic("cv_wait called by non-owner");
+    }
+	printf(" 839\n");
+	
+    acquiresleep(&cur_mutex->slock);
+    cur_mutex->status = 0;     
+    cur_mutex->owner_id = -1;   
+
+	printf(" 845\n");
+	
+    //sleep(cur_mutex, &cur_mutex->slock.lk);
+
+	printf(" 839\n");
+
+    cur_mutex->status = 1;       
+    cur_mutex->owner_id = p->pid;
+
+	printf(" 842\n"); 
+
+    releasesleep(&cur_mutex->slock);
+
+	printf(" 844\n");
+}
+
+
+void cv_signal(int muxid) {
+    if (muxid < 0 || muxid >= MAX_MAXNUM) {
+        panic("Invalid mutex ID in cv_signal");
+    }
+
+    struct mutex *cur_mutex = &all_locks[muxid];
+
+    acquiresleep(&cur_mutex->slock);
+    wakeup(cur_mutex);
+    releasesleep(&cur_mutex->slock);
+}
 char* map_va(uint64 memory, char* name) {
 	
 	

@@ -20,10 +20,19 @@
 #define SYS_link 19
 #define SYS_mkdir 20
 #define SYS_close 21
+
 #define SYS_user_shm_get 22
 #define SYS_shm_rem 23
+
 #define SYS_cm_create_and_enter 24
 #define SYS_cm_setroot 25
 #define SYS_cm_maxproc 26
 #define SYS_procstat 27
 #define SYS_getcid 28
+
+#define SYS_mutex_create 29
+#define SYS_mutex_delete 30
+#define SYS_mutex_lock 31
+#define SYS_mutex_unlock 32
+#define SYS_cv_wait 33
+#define SYS_cv_signal 34

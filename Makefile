@@ -58,6 +58,7 @@ OBJCOPY = $(TOOLPREFIX)objcopy
 OBJDUMP = $(TOOLPREFIX)objdump
 
 CFLAGS = -Wall -Werror -O -fno-omit-frame-pointer -ggdb -gdwarf-2
+
 CFLAGS += -MD
 CFLAGS += -mcmodel=medany
 # CFLAGS += -ffreestanding -fno-common -nostdlib -mno-relax
@@ -148,9 +149,15 @@ UPROGS=\
 	$U/_dockv6\
 	$U/_ps\
 	$U/_CMlvl0\
+	$U/_test_lvl0\
+	$U/_test_lvl1\
+	$U/_test_lvl2\
+	$U/_test_lvl3\
 
 JSON_DIR = $C
 JSON_FILES = $(wildcard $(JSON_DIR)/*.json)
+
+
 
 fs.img: mkfs/mkfs README $(JSON_FILES) $(UPROGS)
 	mkfs/mkfs fs.img README $(JSON_FILES) $(UPROGS)
