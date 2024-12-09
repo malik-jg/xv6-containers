@@ -8,14 +8,14 @@ read_file(const char *filename){
     int fd = open(filename, 0);
     if(fd < 0){
         //printf("CM ERROR: Could not open file %s\n", filename);
-        return NULL;
+        return NULL2;
     }
 
     char *buffer = malloc(JSON_BUFFER_SIZE);
     if(!buffer){
         //printf("ERROR: Memory allocation for buffer failed\n");
         close(fd);
-        return NULL;
+        return NULL2;
     }
 
     int n = read(fd, buffer, JSON_BUFFER_SIZE - 1);
@@ -23,7 +23,7 @@ read_file(const char *filename){
         //printf("ERROR: Could not read file %s\n", filename);
         free(buffer);
         close(fd);
-        return NULL;
+        return NULL2;
     }
 
     buffer[n] = '\0';
@@ -49,17 +49,17 @@ parse_json(const char *js){
         else if(number_of_tokens == JSMN_ERROR_PART){
             //printf("ERROR: The string is not a full JSON packet, more bytes expected\n");
         }
-        return NULL; //or exit()?
+        return NULL2; //or exit()?
     }
     if(number_of_tokens > MAX_TOKENS){
         printf("ERROR: Number of tokens exceeds maximum number of tokens\n");
-        return NULL; //or exit()?
+        return NULL2; //or exit()?
     }   
 
     char **token_values = (char **)malloc(number_of_tokens * sizeof(char *));
     if(!token_values){
         //printf("ERROR: Memory allocation for token_values array failed\n");
-        return NULL; //or exit()?
+        return NULL2; //or exit()?
     }
 
     for(int i = 0; i < number_of_tokens; i++) {
@@ -68,12 +68,12 @@ parse_json(const char *js){
         xv6_size_t length = token.end - token.start;
         if(length >= MAX_TOKEN_LENGTH){
             //printf("ERROR: Token length exceeds maximum token length\n");
-            return NULL; //or exit()?
+            return NULL2; //or exit()?
         }
         token_values[i] = (char *)malloc(length + 1);
-        if(token_values[i] == NULL){
+        if(token_values[i] == NULL2){
             //printf("ERROR: Memory allocation for token value failed\n");
-            return NULL; //or exit()?
+            return NULL2; //or exit()?
         }
         strncpy(token_values[i], js + token.start, length);
         token_values[i][length] = '\0';
@@ -96,11 +96,11 @@ test1(char * parse){
 
 
     char *json_content = read_file(filename);
-    if(json_content == NULL){
+    if(json_content == NULL2){
         return -1;
     }
     char **token_values = parse_json(json_content);
-    if(token_values == NULL){
+    if(token_values == NULL2){
         free(json_content);
         return -1;
     }
@@ -136,11 +136,11 @@ test2(char *parse){
 
 
     char *json_content = read_file(filename);
-    if(json_content == NULL){
+    if(json_content == NULL2){
         return -1;
     }
     char **token_values = parse_json(json_content);
-    if(token_values == NULL){
+    if(token_values == NULL2){
         free(json_content);
         return -1;
     }
@@ -171,11 +171,11 @@ test3(){
     const char *filename = "test3.json";
 
     char *json_content = read_file(filename);
-    if(json_content == NULL){
+    if(json_content == NULL2){
         return -1;
     }
     char **token_values = parse_json(json_content);
-    if(token_values == NULL){
+    if(token_values == NULL2){
         free(json_content);
         return 0;
     }

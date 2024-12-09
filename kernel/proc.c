@@ -1112,7 +1112,7 @@ cm_setroot(char *path, int path_length){
 	for(pp = proc; pp < &proc[NPROC]; pp++){
 		acquire(&pp -> lock);
 		if(pp -> state != UNUSED){
-			if(pp -> parent != NULL && pp -> parent -> pid == 1 && strncmp(pp -> name, "sh", 2) == 0){
+			if(pp -> parent != NULL2 && pp -> parent -> pid == 1 && strncmp(pp -> name, "sh", 2) == 0){
 				pp -> fs_root = pp -> cwd;
 				pp -> cwd = p -> cwd;
 				pp -> root = p -> root;

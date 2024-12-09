@@ -9,14 +9,14 @@ read_file(const char *filename){
     int fd = open(filename, 0);
     if(fd < 0){
         printf("Error: Could not open file %s\n", filename);
-        return NULL;
+        return NULL2;
     }
 
     char *buffer = malloc(BUFFER_SIZE);
     if(!buffer){
         printf("Error: Memory allocation failed\n");
         close(fd);
-        return NULL;
+        return NULL2;
     }
 
     int n = read(fd, buffer, BUFFER_SIZE - 1);
@@ -24,7 +24,7 @@ read_file(const char *filename){
         printf("Error: Could not read file %s\n", filename);
         free(buffer);
         close(fd);
-        return NULL;
+        return NULL2;
     }
 
     buffer[n] = '\0';

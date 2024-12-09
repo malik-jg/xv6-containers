@@ -1,4 +1,4 @@
-#define NULL ((void *)0)
+#define NULL2 ((void *)0)
 
 typedef unsigned int   uint;
 typedef unsigned short ushort;

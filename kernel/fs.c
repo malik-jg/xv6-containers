@@ -191,7 +191,7 @@ static struct inode *iget(uint dev, uint inum);
 // Allocate an inode on device dev.
 // Mark it as allocated by  giving it type type.
 // Returns an unlocked but allocated and referenced inode,
-// or NULL if there is no free inode.
+// or NULL2 if there is no free inode.
 struct inode *
 ialloc(uint dev, short type)
 {
@@ -626,7 +626,7 @@ namex(char *path, int nameiparent, char *name)
 	struct inode *ip, *next;
 	struct proc *p = myproc();
 
-	if((p != NULL) && (p -> root_set == 1)){
+	if((p != NULL2) && (p -> root_set == 1)){
 		if(*path == '/'){
 			ip = iget(p -> cwd -> dev, p -> cwd -> inum);
 		}

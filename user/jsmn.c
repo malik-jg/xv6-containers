@@ -29,7 +29,7 @@ static jsmntok_t *
 jsmn_alloc_token(jsmn_parser *parser, jsmntok_t *tokens, const xv6_size_t num_tokens) {
   jsmntok_t *tok;
   if (parser->toknext >= num_tokens) {
-    return NULL;
+    return NULL2;
   }
   tok = &tokens[parser->toknext++];
   tok->start = tok->end = -1;
@@ -91,12 +91,12 @@ jsmn_parse_primitive(jsmn_parser *parser, const char *js, const xv6_size_t len, 
 #endif
 
 found:
-  if (tokens == NULL) {
+  if (tokens == NULL2) {
     parser->pos--;
     return 0;
   }
   token = jsmn_alloc_token(parser, tokens, num_tokens);
-  if (token == NULL) {
+  if (token == NULL2) {
     parser->pos = start;
     return JSMN_ERROR_NOMEM;
   }
@@ -125,11 +125,11 @@ jsmn_parse_string(jsmn_parser *parser, const char *js, const xv6_size_t len, jsm
 
     /* Quote: end of string */
     if (c == '\"') {
-      if (tokens == NULL) {
+      if (tokens == NULL2) {
         return 0;
       }
       token = jsmn_alloc_token(parser, tokens, num_tokens);
-      if (token == NULL) {
+      if (token == NULL2) {
         parser->pos = start;
         return JSMN_ERROR_NOMEM;
       }
@@ -202,11 +202,11 @@ jsmn_parse(jsmn_parser *parser, const char *js, const xv6_size_t len,
     case '{':
     case '[':
       count++;
-      if (tokens == NULL) {
+      if (tokens == NULL2) {
         break;
       }
       token = jsmn_alloc_token(parser, tokens, num_tokens);
-      if (token == NULL) {
+      if (token == NULL2) {
         return JSMN_ERROR_NOMEM;
       }
       if (parser->toksuper != -1) {
@@ -228,7 +228,7 @@ jsmn_parse(jsmn_parser *parser, const char *js, const xv6_size_t len,
       break;
     case '}':
     case ']':
-      if (tokens == NULL) {
+      if (tokens == NULL2) {
         break;
       }
       type = (c == '}' ? JSMN_OBJECT : JSMN_ARRAY);
@@ -285,7 +285,7 @@ jsmn_parse(jsmn_parser *parser, const char *js, const xv6_size_t len,
         return r;
       }
       count++;
-      if (parser->toksuper != -1 && tokens != NULL) {
+      if (parser->toksuper != -1 && tokens != NULL2) {
         tokens[parser->toksuper].size++;
       }
       break;
@@ -298,7 +298,7 @@ jsmn_parse(jsmn_parser *parser, const char *js, const xv6_size_t len,
       parser->toksuper = parser->toknext - 1;
       break;
     case ',':
-      if (tokens != NULL && parser->toksuper != -1 &&
+      if (tokens != NULL2 && parser->toksuper != -1 &&
           tokens[parser->toksuper].type != JSMN_ARRAY &&
           tokens[parser->toksuper].type != JSMN_OBJECT) {
 #ifdef JSMN_PARENT_LINKS
@@ -332,7 +332,7 @@ jsmn_parse(jsmn_parser *parser, const char *js, const xv6_size_t len,
     case 'f':
     case 'n':
       /* And they must not be keys of the object */
-      if (tokens != NULL && parser->toksuper != -1) {
+      if (tokens != NULL2 && parser->toksuper != -1) {
         const jsmntok_t *t = &tokens[parser->toksuper];
         if (t->type == JSMN_OBJECT ||
             (t->type == JSMN_STRING && t->size != 0)) {
@@ -348,7 +348,7 @@ jsmn_parse(jsmn_parser *parser, const char *js, const xv6_size_t len,
         return r;
       }
       count++;
-      if (parser->toksuper != -1 && tokens != NULL) {
+      if (parser->toksuper != -1 && tokens != NULL2) {
         tokens[parser->toksuper].size++;
       }
       break;
@@ -361,7 +361,7 @@ jsmn_parse(jsmn_parser *parser, const char *js, const xv6_size_t len,
     }
   }
 
-  if (tokens != NULL) {
+  if (tokens != NULL2) {
     for (i = parser->toknext - 1; i >= 0; i--) {
       /* Unmatched opened object or array */
       if (tokens[i].start != -1 && tokens[i].end == -1) {
