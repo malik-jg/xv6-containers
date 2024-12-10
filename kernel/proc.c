@@ -549,6 +549,8 @@ void enqueue(struct proc* process, int priority) {
 //  - swtch to start running that process.
 //  - eventually that process transfers control
 //    via swtch back to the scheduler.
+
+// MAYBE MAKE A FUNC TO PUT THE ROUND ROBIN PROC AT THE END OF THE BUCKET
 void
 scheduler(void)
 {
@@ -562,7 +564,48 @@ scheduler(void)
         intr_on();
 
         int found = 0;
+		// FS protocol
+		for (int priority = 0; priority < PRIOMAX; priority++) {
+            // skip to next bucket if this one is empty
+            if (fs_Map.buckets[priority] == (void*)0) {
+                continue;
+            }
 
+            // grab the process in the bucket
+            struct proc* current = fs_Map.buckets[priority];
+
+            // get it lock
+            acquire(&current->lock);
+            if (current->state == RUNNABLE) {
+                // take the process out of the bucket
+               
+                // change its state to RUNNING
+                current->state = RUNNING;
+                c->proc = current;
+				//printf("Running the Process\n");
+				//printf("%d\n", priority);
+				// printf("PID: ");
+				// printf("%d\n", current -> pid);
+				// printf("Priority: ");
+				// printf("%d\n", proc -> priority);
+                
+                swtch(&c->context, &current->context);
+
+             
+                c->proc = 0;
+                found = 1;
+
+            }
+            release(&current->lock);
+
+            // exit innerloop if we found a valid process
+            if (found) {
+                break;
+            }
+        }
+
+		// HFS protocol
+		//------------------------------------------------------------------------
         // go thru the priority buckets
         for (int priority = 0; priority < PRIOMAX; priority++) {
             // skip to next bucket if this one is empty
@@ -612,8 +655,8 @@ scheduler(void)
                 break;
             }
         }
+		//------------------------------------------------------------------------
 
-        
         if (!found) {
             intr_on();
             asm volatile("wfi");

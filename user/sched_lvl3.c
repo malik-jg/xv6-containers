@@ -5,7 +5,8 @@ int main (void) {
     
     // int pid = getpid();
     // int prio = prio_get(pid);
-    for (;;) {
+    int i = 0;
+    while (i < 100) {
         int pid = getpid();
         int prio = prio_get(pid);
         printf("PID: ");
@@ -18,6 +19,7 @@ int main (void) {
             printf("SUCCESS LVL 3: Priority demoted to last bucket \n");
             break;
         }
+        i++;
     }
     
     return 0;
