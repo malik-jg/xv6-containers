@@ -141,6 +141,10 @@ UPROGS=\
 	$U/_grind\
 	$U/_wc\
 	$U/_zombie\
+	$U/_sched_lvl0\
+	$U/_sched_lvl1\
+	$U/_sched_lvl3\
+	
 	$U/_shmem_test1\
 	$U/_shmem_test2\
 	$U/_shmem_test3\

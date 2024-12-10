@@ -116,6 +116,21 @@ enum procstate
 	RUNNING,
 	ZOMBIE
 };
+// --------------------------------------------------------------------------
+
+// priority map for HFS
+#define PRIOMAX 8
+// node for hash map
+// struct prioNode {
+// 	struct proc* process;
+//     struct prioNode *next;
+// };
+
+// hashmap for priorities
+struct prioMap {
+    struct proc *buckets[PRIOMAX];
+};
+// --------------------------------------------------------------------------
 
 // Per-process state
 struct proc {
@@ -127,7 +142,8 @@ struct proc {
 	int            killed; // If non-zero, have been killed
 	int            xstate; // Exit status to be returned to parent's wait
 	int            pid;    // Process ID
-
+	int 		   priority; // Process Priority
+	struct proc   *next;
 	// For Containers
 	int 		   cid;	  			         // Container ID
 	struct inode   *root;		     		 // Root directory of container

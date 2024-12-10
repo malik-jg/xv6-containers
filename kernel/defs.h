@@ -108,6 +108,8 @@ void         yield(void);
 int          either_copyout(int user_dst, uint64 dst, void *src, uint64 len);
 int          either_copyin(void *dst, int user_src, uint64 src, uint64 len);
 void         procdump(void);
+int          prio_set(int pid, int priority);
+int          prio_get(int pid);
 int          procstat(uint64 which, struct pstat *ps);
 
 char* map_va(uint64, char*);
@@ -153,6 +155,7 @@ int  fetchaddr(uint64, uint64 *);
 void syscall();
 int  fetchstruct(uint64, void *, int);
 int  putstruct(uint64, void *, int);
+
 
 // trap.c
 extern uint            ticks;

@@ -122,6 +122,8 @@ extern uint64 sys_unlink(void);
 extern uint64 sys_link(void);
 extern uint64 sys_mkdir(void);
 extern uint64 sys_close(void);
+extern uint64 sys_prio_set(void);
+extern uint64 sys_prio_get(void);
 
 extern uint64 sys_shm_get(void);
 extern uint64 sys_shm_rem(void);
@@ -147,7 +149,7 @@ static uint64 (*syscalls[])(void) = {
   [SYS_chdir] sys_chdir, [SYS_dup] sys_dup,       [SYS_getpid] sys_getpid, [SYS_sbrk] sys_sbrk,
   [SYS_sleep] sys_sleep, [SYS_uptime] sys_uptime, [SYS_open] sys_open,     [SYS_write] sys_write,
   [SYS_mknod] sys_mknod, [SYS_unlink] sys_unlink, [SYS_link] sys_link,     [SYS_mkdir] sys_mkdir,
-  [SYS_close] sys_close, [SYS_user_shm_get] sys_shm_get, [SYS_shm_rem] sys_shm_rem, [SYS_cm_create_and_enter] sys_cm_create_and_enter,[SYS_cm_setroot] sys_cm_setroot,
+  [SYS_close] sys_close, [SYS_prio_set] sys_prio_set, [SYS_prio_get] sys_prio_get, [SYS_user_shm_get] sys_shm_get, [SYS_shm_rem] sys_shm_rem, [SYS_cm_create_and_enter] sys_cm_create_and_enter,[SYS_cm_setroot] sys_cm_setroot,
   [SYS_cm_maxproc] sys_cm_maxproc, [SYS_procstat] sys_procstat, [SYS_getcid] sys_getcid, [SYS_mutex_create] sys_mutex_create, [SYS_mutex_delete] sys_mutex_delete, 
   [SYS_mutex_lock] sys_mutex_lock, [SYS_mutex_unlock] sys_mutex_unlock, [SYS_cv_wait] sys_cv_wait,
   [SYS_cv_signal] sys_cv_signal, 

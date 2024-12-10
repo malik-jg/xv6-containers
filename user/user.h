@@ -65,3 +65,7 @@ int shm_rem(char *name);
 // umalloc.c
 void *malloc(uint);
 void  free(void *);
+
+//scheduling sys calls
+int prio_set(int pid, int priority);
+int prio_get(int pid);

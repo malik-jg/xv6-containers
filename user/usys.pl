@@ -36,7 +36,9 @@ entry("getpid");
 entry("sbrk");
 entry("sleep");
 entry("uptime");
-
+# scheduling sys calls
+entry("prio_set");
+entry("prio_get");
 
 entry("user_shm_get");
 entry("shm_rem");
