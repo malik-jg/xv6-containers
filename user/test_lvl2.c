@@ -23,6 +23,7 @@ int main() {
         for (int i = 0; i < ITERATIONS; i++) {
             printf("Child %d waiting on condition...\n", getpid());
             mutex_lock(muxid);
+            printf("26 \n");
             cv_wait(muxid);
             printf("Child %d woke up from condition.\n", getpid());
             mutex_unlock(muxid);

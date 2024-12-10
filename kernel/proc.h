@@ -8,6 +8,7 @@ struct mutex {
 	//struct spinlock lk; //spinlock for mutexes
 	int referenced_by;   //ref or no ref	
 	struct sleeplock slock;
+	char 			nameM[16];
 };
 
 // Saved registers for kernel context switches.

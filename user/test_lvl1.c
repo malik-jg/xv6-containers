@@ -28,7 +28,7 @@ void test_lvl1_mutexes() {
             mutex_lock(muxid);
             printf("Child %d locked mutex %d\n", getpid(), muxid);
             printf("30 \n");
-            sleep(5); //Simulate critical section
+            sleep(1); //Simulate critical section
             printf("32 \n");
             mutex_unlock(muxid);
             printf("Critical Section impromptu \n");
