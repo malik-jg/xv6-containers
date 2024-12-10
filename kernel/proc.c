@@ -779,7 +779,7 @@ int mutex_create(char *name) {
     // Find an unused mutex slot in `all_locks`
 	for (int i = 0; i < MAX_MAXNUM; i++) {
     	if (strcmp(all_locks[i].nameM, name) == 0) {
-        	printf("HITS HITS HITS \n");
+        	//printf("HITS HITS HITS \n");
 			all_locks[i].referenced_by += 1;
         	return all_locks[i].mutex_id;
     	}

@@ -25,6 +25,22 @@ void test_mutex_blocking() {
         printf("Mutex creation failed\n");
         exit(0);
     }
+
+
+    int muxid4 = mutex_create("holder");
+    int temp = muxid4;
+    
+
+    mutex_delete(muxid4);
+
+    int muxid5 = mutex_create("meow");
+
+
+    if (temp != muxid5){
+        printf("delete doesn't work");
+    }
+
+
     //printf("21 \n");
 
     mutex_lock(muxid);
@@ -38,10 +54,10 @@ void test_mutex_blocking() {
     mutex_unlock(muxid2);
     //printf("32 \n");
 
-
-    printf("SUCCESS IN LEVEL 0 \n");
+    if (muxid2 == muxid3){
+        printf("SUCCESS IN LEVEL 0 CREATING\n");
+    }
 }
-
 
 int main() {
     test_mutex_blocking();
