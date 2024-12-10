@@ -93,6 +93,15 @@ mycpu(void)
 	return c;
 }
 
+//straight from stack overflow regarding how to make strcmp used in mutex_create
+int 
+strcmp(const char *s1, const char *s2) {
+    while (*s1 && (*s1 == *s2)) {
+        s1++; s2++;
+    }
+    return (unsigned char)*s1 - (unsigned char)*s2;
+}
+
 // Return the current struct proc *, or zero if none.
 struct proc *
 myproc(void)
@@ -768,12 +777,23 @@ int mutex_create(char *name) {
     struct proc *process = myproc();
 
     // Find an unused mutex slot in `all_locks`
+	for (int i = 0; i < MAX_MAXNUM; i++) {
+    	if (strcmp(all_locks[i].nameM, name) == 0) {
+        	printf("HITS HITS HITS \n");
+			all_locks[i].referenced_by += 1;
+        	return all_locks[i].mutex_id;
+    	}
+	}
+
     for (int i = 0; i < MAX_MAXNUM; i++) {
-        if (all_locks[i].status == 0) { 
+
+		if (all_locks[i].status == 0){
+
             all_locks[i].mutex_id = i;
-            all_locks[i].status = 0; 
+            all_locks[i].status = 1; 
             all_locks[i].owner_id = -1; 
-            all_locks[i].referenced_by = 1;
+            all_locks[i].referenced_by += 1;
+			strncpy(all_locks[i].nameM, name, sizeof(all_locks[i].nameM));
             initsleeplock(&all_locks[i].slock, name);
 
             // Check if process's mutex table has space
@@ -787,7 +807,8 @@ int mutex_create(char *name) {
             process->mutex_count++;
 
             //printf("Created mutex %d for process %d. Mutex count: %d\n", i, process->pid, process->mutex_count);
-            return i; //mutex_id
+			//printf("%d", mutex_id);
+            return all_locks[i].mutex_id; //mutex_id
         }
     }
 
@@ -819,19 +840,50 @@ void mutex_delete(int muxid) {
 }
 
 
+//acquire sleep essentially acquires, sleeps and wakesup
 
+/*
+
+void
+acquiresleep(struct sleeplock *lk)
+{
+	acquire(&lk->lk);
+	while (lk->locked) { sleep(lk, &lk->lk); }
+	lk->locked = 1;
+	lk->pid    = myproc()->pid;
+	release(&lk->lk);
+}
+
+void
+releasesleep(struct sleeplock *lk)
+{
+	acquire(&lk->lk);
+	lk->locked = 0;
+	lk->pid    = 0;
+	wakeup(lk);
+	release(&lk->lk);
+}
+	for (int i = 0; i < p->mutex_count; i++) {
+        struct mutex *cur_mutex = p->mutex_table[i];
+        acquiresleep(&cur_mutex->slock);
+        cur_mutex->status = 0;        
+        cur_mutex->owner_id = -1;
+        wakeup(cur_mutex);            
+        releasesleep(&cur_mutex->slock);
+    }
+*/
 void
 mutex_lock(int muxid) {
     struct proc *process = myproc();
     struct mutex *cur_mutex = &all_locks[muxid];
 
-
+	 printf("860 \n");
 
 	//printf("750 \n");
     if (muxid < 0 || muxid >= MAX_MAXNUM) {
         panic("Invalid mutex ID in mutex_lock");
     }
-
+	printf("866 \n");
     int found = 0;
     for (int i = 0; i < process->mutex_count; i++) {
         if (process->mutex_table[i]->mutex_id == muxid) {
@@ -839,25 +891,27 @@ mutex_lock(int muxid) {
             break;
         }
     }
+	printf("874 \n");
 
 
 	//printf("759 \n");
     if (!found) {
         panic("Invalid mutex ID");
     }
-	//printf("763 \n");
+	printf("763 \n");
     acquiresleep(&cur_mutex->slock);
 
-    while (cur_mutex->status == 1) {
-		//printf("767 \n");
-        sleep(cur_mutex, &cur_mutex->slock.lk); 
-    }
+    // while (cur_mutex->status == 1) {
+	// 	printf("767 \n");
+    //     sleep(cur_mutex, &cur_mutex->slock.lk); 
+	// 	printf("885");
+    // }
 
 	cur_mutex->owner_id = myproc()->pid;
-	//printf("771 \n");
+	printf("771 \n");
     cur_mutex->status = 1;
     cur_mutex->owner_id = process->pid;
-	//printf("774 \n");
+	printf("774 \n");
 	releasesleep(&cur_mutex->slock);
 }
 
@@ -870,9 +924,9 @@ void mutex_unlock(int muxid) {
 	if (muxid < 0 || muxid >= MAX_MAXNUM) {
         panic("Invalid mutex ID");
     }
-	printf("804");
+	printf("804 \n");
     //acquiresleep(&cur_mutex->slock);
-	printf("806");
+	printf("806 \n");
     if (cur_mutex->owner_id != process->pid) {
 		//exit(0);
 		//release(&cur_mutex->slock);
@@ -941,6 +995,8 @@ void cv_signal(int muxid) {
     wakeup(cur_mutex);
     releasesleep(&cur_mutex->slock);
 }
+
+
 char* map_va(uint64 memory, char* name) {
 	
 	
