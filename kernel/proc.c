@@ -5,22 +5,15 @@
 #include "spinlock.h"
 #include "proc.h"
 #include "defs.h"
-// --------------------------------------------------------------------------
-// priority map
-// #define PRIOMAX 8
-// // node for hash map
-// typedef struct prioNode {
-//     char *key;
-//     int priority;
-//     struct prioNode *next;
-// } prioNode;
-
-// // hashmap for priorities
-// typedef struct prioMap {
-//     prioNode *buckets[PRIOMAX];
-// } prioMap;
 
 // --------------------------------------------------------------------------
+
+
+// --------------------------------------------------------------------------
+// struct prioMap fs_Map = {0};
+// struct prioMap* hfs_Map = {0};
+// --------------------------------------------------------------------------
+
 
 
 struct cpu cpus[NCPU];
@@ -29,12 +22,17 @@ struct proc proc[NPROC];
 
 struct proc *initproc;
 
+// init empty maps for the procs 
+struct prioMap fs_Map = {0};
+struct prioMap hfs_Map = {0};
+
 int             nextpid = 1;
 struct spinlock pid_lock;
 
 extern void forkret(void);
 static void freeproc(struct proc *p);
-
+// init the enqueue method
+extern void enqueue(struct proc *process, int priority);
 extern char trampoline[]; // trampoline.S
 
 // helps ensure that wakeups of wait()ing
@@ -70,7 +68,11 @@ procinit(void)
 	for (p = proc; p < &proc[NPROC]; p++) {
 		initlock(&p->lock, "proc");
 		p->state  = UNUSED;
+		// enqueue all procs in the table with prio of 0
+		
 		p->kstack = KSTACK((int)(p - proc));
+		//printf("Calling enqueue\n");
+		enqueue(p, 0);
 	}
 }
 
@@ -260,8 +262,11 @@ userinit(void)
 	p->cwd = namei("/");
 
 	p->state = RUNNABLE;
-
+	// enqueue proc into the HFS with priority 0
+	//enqueue(p, 0);
 	release(&p->lock);
+	enqueue(p, 0);
+	//printf("userinit\n");
 }
 
 // Grow or shrink user memory by n bytes.
@@ -325,8 +330,10 @@ fork(void)
 
 	acquire(&np->lock);
 	np->state = RUNNABLE;
+	// enqueue the child with zero priority
+	//enqueue(np, 0);
 	release(&np->lock);
-
+	enqueue(np, 0);
 	return pid;
 }
 
@@ -440,6 +447,100 @@ wait(uint64 addr)
 		sleep(p, &wait_lock); // DOC: wait-sleep
 	}
 }
+// --------------------------------------------------------------------------
+
+// search for the next process in the HFS map
+// struct proc *getNextProcessHFS() {
+//     for (int i = 0; i < PRIOMAX; i++) {
+//         if (hfs_Map -> buckets[i]) {
+//             struct prioNode *node = hfs_Map -> buckets[i];
+//             struct proc *p = node->process;
+//             hfs_Map -> buckets[i] = node->next; 
+//             freeproc(node -> process);
+//             return p;
+//         }≠
+//     }
+//     return (void*)0; 
+// }
+// // search for the next process in the FS map
+// struct proc* getNextProcessFS() {
+//     for (int i = 0; i < PRIOMAX; i++) {
+//         if (fs_Map.buckets[i]) {
+//             // Return the first process found
+//             return fs_Map.buckets[i];
+//         }
+//     }
+//     // If no processes are found, return NULL
+//     printf("No processes in the map.\n");
+//     return (void*)0;
+// }
+
+// struct proc* getNextProcessHFS() {
+//     for (int i = 0; i < PRIOMAX; i++) {
+//         if (hfs_Map.buckets[i]) {
+//             // Return the first process found
+//             return hfs_Map.buckets[i];
+//         }
+//     }
+//     // If no processes are found, return NULL
+//     printf("No processes in the map.\n");
+//     return (void*)0;
+// }
+
+
+// int hfsIsEmpty (void) {
+// 	for (int i=0; i<PRIOMAX; i++) {
+// 		if (hfs_Map.buckets[i]) {
+// 			// return 0 if the map is NOT empty
+// 			return 0;
+// 		}
+// 	}
+// 	// return 1 if it is empty
+// 	return 1;
+// }
+// int fsIsEmpty (void) {
+// 	for (int i=0; i<PRIOMAX; i++) {
+// 		if (fs_Map.buckets[i]) {
+// 			// return 0 if the map is NOT empty
+// 			return 0;
+// 		}
+// 	}
+// 	// return 1 if it is empty
+// 	return 1;
+// }
+// --------------------------------------------------------------------------
+void enqueue(struct proc* process, int priority) {
+	// sanity check
+    if (priority < 0 || priority >= PRIOMAX) {
+        //printf("Invalid priority: %d\n", priority);
+        return;
+    }
+
+    // assign the priority
+    process->priority = priority;
+
+    // insert at the front of the respective bucket
+    process->next = hfs_Map.buckets[priority];
+    hfs_Map.buckets[priority] = process;
+   
+	
+}
+// struct proc* dequeue() {
+//     // Iterate through priority levels from highest to lowest
+//     for (int priority = 0; priority < PRIOMAX; priority++) {
+//         struct proc* current = hfs_Map.buckets[priority];
+
+//         // If the current bucket has processes, dequeue the first one
+//         if (current != (void*)0) {
+//             hfs_Map.buckets[priority] = current->next; // Update head of the list
+//             current->next = (void*)0; // Detach dequeued process
+//             return current; // Return the dequeued process
+//         }
+//     }
+
+//     // If all buckets are empty, return NULL
+//     return (void*)0;
+// }
 
 // Per-CPU process scheduler.
 // Each CPU calls scheduler() after setting itself up.
@@ -451,40 +552,176 @@ wait(uint64 addr)
 void
 scheduler(void)
 {
-	struct proc *p;
-	struct cpu  *c = mycpu();
+	//struct proc *p;
+    struct cpu *c = mycpu();
 
-	c->proc = 0;
-	for (;;) {
-		// The most recent process to run may have had interrupts
-		// turned off; enable them to avoid a deadlock if all
-		// processes are waiting.
-		intr_on();
+    c->proc = 0;
 
-		int found = 0;
-		for (p = proc; p < &proc[NPROC]; p++) {
-			acquire(&p->lock);
-			if (p->state == RUNNABLE) {
-				// Switch to chosen process.  It is the process's job
-				// to release its lock and then reacquire it
-				// before jumping back to us.
-				p->state = RUNNING;
-				c->proc  = p;
-				swtch(&c->context, &p->context);
+    for (;;) {
+        
+        intr_on();
 
-				// Process is done running for now.
-				// It should have changed its p->state before coming back.
-				c->proc = 0;
-				found   = 1;
-			}
-			release(&p->lock);
-		}
-		if (found == 0) {
-			// nothing to run; stop running on this core until an interrupt.
-			intr_on();
-			asm volatile("wfi");
-		}
-	}
+        int found = 0;
+
+        // go thru the priority buckets
+        for (int priority = 0; priority < PRIOMAX; priority++) {
+            // skip to next bucket if this one is empty
+            if (hfs_Map.buckets[priority] == (void*)0) {
+                continue;
+            }
+
+            // grab the process in the bucket
+            struct proc* current = hfs_Map.buckets[priority];
+
+            // get it lock
+            acquire(&current->lock);
+            if (current->state == RUNNABLE) {
+                // take the process out of the bucket
+                hfs_Map.buckets[priority] = current->next;
+                current->next = (void*)0;
+
+                // change its state to RUNNING
+                current->state = RUNNING;
+                c->proc = current;
+				//printf("Running the Process\n");
+				//printf("%d\n", priority);
+				// printf("PID: ");
+				// printf("%d\n", current -> pid);
+				// printf("Priority: ");
+				// printf("%d\n", proc -> priority);
+                
+                swtch(&c->context, &current->context);
+
+             
+                c->proc = 0;
+                found = 1;
+
+                // after process runs, demote the priority
+                if (priority < PRIOMAX - 1) {
+                    // requeue the process back into the map 
+                    enqueue(current, priority + 1);
+                } else {
+                    // if we are at the end of the buckets, place into the last for round robin
+                    enqueue(current, priority);
+                }
+            }
+            release(&current->lock);
+
+            // exit innerloop if we found a valid process
+            if (found) {
+                break;
+            }
+        }
+
+        
+        if (!found) {
+            intr_on();
+            asm volatile("wfi");
+        }
+    }
+
+
+//-------------------------------------------------------------------------------------
+	// struct proc *p;
+	// struct cpu  *c = mycpu();
+
+	// c->proc = 0;
+	// for (;;) {
+	// 	// The most recent process to run may have had interrupts
+	// 	// turned off; enable them to avoid a deadlock if all
+	// 	// processes are waiting.
+	// 	intr_on();
+
+	// 	int found = 0;
+	// 	for (p = proc; p < &proc[NPROC]; p++) {
+	// 		acquire(&p->lock);
+	// 		if (p->state == RUNNABLE) {
+	// 			// Switch to chosen process.  It is the process's job
+	// 			// to release its lock and then reacquire it
+	// 			// before jumping back to us.
+	// 			p->state = RUNNING;
+	// 			c->proc  = p;
+	// 			swtch(&c->context, &p->context);
+
+	// 			// Process is done running for now.
+	// 			// It should have changed its p->state before coming back.
+	// 			c->proc = 0;
+	// 			found   = 1;
+	// 		}
+	// 		release(&p->lock);
+	// 	}
+	// 	if (found == 0) {
+	// 		// nothing to run; stop running on this core until an interrupt.
+	// 		intr_on();
+	// 		asm volatile("wfi");
+	// 	}
+	// }
+//-------------------------------------------------------------------------------------
+
+// 	for (;;) {
+// 		// The most recent process to run may have had interrupts
+// 		// turned off; enable them to avoid a deadlock if all
+// 		// processes are waiting.
+// 		//printf("in sched for loop\n");
+// 		found = 0;
+// 		intr_on();
+// 		// if there are procs in the FS map, we must run those first
+// 		if (fsIsEmpty() == 0) {
+// 			//printf("in fs cond\n");
+// 			p = getNextProcessFS();
+// 			if (p) {
+// 				acquire(&p -> lock);
+// 				if (p -> state == RUNNABLE) {
+// 					//printf("Proc is Running\n");
+// 					p -> state = RUNNING;
+// 					c -> proc = p;
+// 					swtch(&c -> context, &p -> context);
+// 					c -> proc = 0;
+// 					found = 1;
+// 				}
+// 				release(&p -> lock);	
+// 			}
+// 		} 
+// 		//if there are no more FS procs, we can run the HFS procs
+// 		if (hfsIsEmpty() == 0) {
+// 			//printf("in hfs cond\n");
+			
+// 			p = getNextProcessHFS();
+// 			if (p) {
+// 			//printf("got the next process\n");
+
+// 				acquire(&p -> lock);
+// 				if (p -> state == RUNNABLE) {
+// 					printf("Running state\n");
+// 					p -> state = RUNNING;
+// 					c -> proc = p;
+// 					swtch(&c -> context, &p -> context);
+// 					// demote the priority
+// 					if (p -> priority < PRIOMAX - 1) {
+// 						p -> priority ++;
+// 					}
+// 					//addToMap(p -> priority, p);
+
+// 					c -> proc = 0;
+// 					found = 1;
+// 				}
+// 				release(&p -> lock);	
+// 			}
+// 		}
+// 		if (found == 0) {
+// 			// nothing to run; stop running on this core until an interrupt.
+// 			intr_on();
+// 			asm volatile("wfi");
+// 		}
+// 		//printf("end of sched\n");
+// 	}
+		
+// // ---------------------------------------------------------------------------------------
+	
+// ---------------------------------------------------------------------------------------
+
+	
+	
 }
 
 // Switch to scheduler.  Must hold only p->lock

@@ -141,6 +141,8 @@ UPROGS=\
 	$U/_zombie\
 	$U/_sched_lvl0\
 	$U/_sched_lvl1\
+	$U/_sched_lvl3\
+	
 
 fs.img: mkfs/mkfs README $(UPROGS)
 	mkfs/mkfs fs.img README $(UPROGS)

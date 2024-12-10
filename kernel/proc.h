@@ -99,21 +99,19 @@ enum procstate
 };
 // --------------------------------------------------------------------------
 
-// priority map
+// priority map for HFS
 #define PRIOMAX 8
 // node for hash map
-struct prioNode {
-    char *key;
-    int priority;
-    struct prioNode *next;
-};
+// struct prioNode {
+// 	struct proc* process;
+//     struct prioNode *next;
+// };
 
 // hashmap for priorities
 struct prioMap {
-    struct prioNode *buckets[PRIOMAX];
+    struct proc *buckets[PRIOMAX];
 };
 // --------------------------------------------------------------------------
-
 
 // Per-process state
 struct proc {
@@ -126,6 +124,7 @@ struct proc {
 	int            xstate; // Exit status to be returned to parent's wait
 	int            pid;    // Process ID
 	int 		   priority; // Process Priority
+	struct proc   *next;
 	// wait_lock must be held when using this:
 	struct proc *parent; // Parent process
 
