@@ -465,18 +465,14 @@ int shm_rem(char *name) {
 			if (strncmp(name, shared_memory[i].name, len) == 0) {
 				//should remove the reference
 				shared_memory[i].reference_count--;
-
 				proc_free(name);
-
-
 				if (shared_memory[i].reference_count == 0) {
 					kfree((void*)shared_memory[i].physical_address);
 					memset(shared_memory[i].name, 0, 16);
 					//helps with testing
 					return 1;
 				}
-				//if shmems are to be moved
-				
+				//if shmems are to be moved	
 				return 0;
 			}	
 		}

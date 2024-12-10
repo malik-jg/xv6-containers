@@ -1,7 +1,7 @@
 #include "kernel/types.h"
 #include "user/user.h"
-
 #include "kernel/param.h"
+#include "kernel/riscv.h"
 
 int main (void) {
     printf("\nTEST TWO: CHILD AND PARENT INTERACTIONS\n");
@@ -66,23 +66,63 @@ int main (void) {
         } else {
             printf("FAILURE! DOES NOT WORK FOR THREE MESSAGES\n");
         }
+        shm_rem("1tester");
+        shm_rem("2tester");
+        shm_rem("3tester");
     }
 
     //TODO: ADD THREE MESSAGES BEFORE FORK
 
 
-    /*
-    TODO: TEST THE MAX NUM
-
+    
+    //TODO: TEST THE MAX NUM
     char* array[SHM_MAXNUM];
+    char names[SHM_MAXNUM][2];
+    const char* size_message = "HOPEFULLY NOT TOO BIG";
 
+    //doesnt work for bigger than 128
     for (uint64 i = 0; i < SHM_MAXNUM - 1; i++) {
         //create all but one process
-        array[i] = shm_get(i);
+        char next[2] = "";
+        next[0] = (char)(((uint64)'a')+ i);
+        names[i][0] = (char)(((uint64)'a')+ i);
+
+        array[i] = shm_get(next);
+
+        strcpy(array[i], size_message);
     }
 
-    strcpy(array[0])
-    */
+    array[SHM_MAXNUM - 1] = shm_get("testing large");
+    array[SHM_MAXNUM] = shm_get("testing too big");
+
+
+    
+    printf("\tBIGGEST MEM ADDRESS: %ld\n", (uint64) (array[SHM_MAXNUM - 1]));
+    printf("\tBIGGER THAN BIGGEST: %ld\n", (uint64) (array[SHM_MAXNUM]));
+
+    if ((uint64) (array[SHM_MAXNUM]) == (uint64) (array[SHM_MAXNUM - 1]) + PGSIZE) {
+        printf("FAILURE! ALLOCATES PAGES BEYOND BIGGEST!\n");
+    } else {
+        printf("SUCCESS! DOESN'T ALLOCATE PAGES BEYOND BIGGEST!\n");
+    }
+
+    int flag = 0;
+    for (int i = 0; i < SHM_MAXNUM - 2; i+=2) {
+        shm_rem(names[i]);
+        if (strcmp(array[i], size_message) == 0 || strcmp(array[i + 1], size_message) != 0) {
+            flag = 1;
+            printf("FAILURE WITH PATTERNED REMOVAL\n");
+        }
+    }
+
+    if (flag == 0) {
+        printf("SUCCESS! NO FAILURE WITH PATTERNED REMOVAL!\n");
+    }
+    
+
+
+    
+
 
     printf("TEST TWO COMPLETE\n\n");
     exit(0);
